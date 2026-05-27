@@ -7,6 +7,7 @@ use rpython_span::Span;
 use rpython_types::{Mutability, TypeId};
 
 /// CFG builder for one MIR function.
+#[allow(dead_code)]
 pub struct MirBuilder {
     pub locals: Vec<LocalDecl>,
     pub blocks: Vec<BasicBlock>,
@@ -16,7 +17,7 @@ pub struct MirBuilder {
 
 impl MirBuilder {
     pub fn new(ret_ty: TypeId, span: Span) -> Self {
-        let mut locals = vec![LocalDecl {
+        let locals = vec![LocalDecl {
             ty: ret_ty,
             mutability: Mutability::Imm,
             span,
@@ -104,6 +105,7 @@ impl MirBuilder {
         self.blocks[self.current_block.index()].terminator = Terminator { kind, span };
     }
 
+    #[allow(dead_code)]
     pub fn finish(mut self) -> (Vec<LocalDecl>, Vec<BasicBlock>) {
         if matches!(
             self.blocks.last().map(|b| &b.terminator.kind),
@@ -120,6 +122,7 @@ impl MirBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub fn hir_unary_to_mir(op: rpython_hir::UnaryOp) -> UnaryOp {
     match op {
         rpython_hir::UnaryOp::Not => UnaryOp::Not,
@@ -127,6 +130,7 @@ pub fn hir_unary_to_mir(op: rpython_hir::UnaryOp) -> UnaryOp {
     }
 }
 
+#[allow(dead_code)]
 pub fn hir_binary_to_mir(op: rpython_hir::BinaryOp) -> BinOp {
     use rpython_hir::BinaryOp as H;
     match op {
@@ -146,6 +150,7 @@ pub fn hir_binary_to_mir(op: rpython_hir::BinaryOp) -> BinOp {
     }
 }
 
+#[allow(dead_code)]
 pub fn hir_const_to_mir(c: &rpython_hir::HirConst) -> ConstValue {
     match c {
         rpython_hir::HirConst::Int(n) => ConstValue::Int(*n),

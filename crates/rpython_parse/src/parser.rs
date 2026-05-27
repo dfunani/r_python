@@ -11,11 +11,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(
-        tokens: &'a [SpannedToken],
-        arena: &'a mut Arena,
-        handler: &'a mut Handler,
-    ) -> Self {
+    pub fn new(tokens: &'a [SpannedToken], arena: &'a mut Arena, handler: &'a mut Handler) -> Self {
         Self {
             tokens,
             pos: 0,
@@ -58,10 +54,8 @@ impl<'a> Parser<'a> {
     }
 
     pub fn error(&mut self, span: Span, message: impl Into<String>) {
-        self.handler.emit(
-            Diagnostic::error(message)
-                .with_label(span, "here", true),
-        );
+        self.handler
+            .emit(Diagnostic::error(message).with_label(span, "here", true));
     }
 
     pub fn expect(&mut self, kind: TokenKind, message: &str) -> bool {

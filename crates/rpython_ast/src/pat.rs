@@ -1,4 +1,4 @@
-use crate::{Literal, Path, PatId};
+use crate::{Literal, PatId, Path};
 use rpython_span::Span;
 use serde::{Deserialize, Serialize};
 use smol_str::SmolStr;

@@ -2,9 +2,7 @@
 
 use rustc_hash::FxHashSet;
 
-use rpython_mir::{
-    MirBody, MirCrate, Operand, Place, Rvalue, StatementKind, TerminatorKind,
-};
+use rpython_mir::{MirBody, MirCrate, Operand, Place, Rvalue, StatementKind, TerminatorKind};
 
 /// MIR after borrow checking.
 #[derive(Clone, Debug)]

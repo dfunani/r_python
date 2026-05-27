@@ -2,26 +2,20 @@
 
 use std::fmt::Write;
 
-use rpython_ids::DefId;
 use rpython_mir::{
-    BasicBlock, BinOp, ConstValue, FnOperand, MirBody, MirCrate, MirFuncId, Operand, OperandPlace,
-    Rvalue, StatementKind, TerminatorKind, UnaryOp,
+    BasicBlock, BinOp, ConstValue, FnOperand, MirBody, MirCrate, Operand, OperandPlace, Rvalue,
+    StatementKind, TerminatorKind, UnaryOp,
 };
 use rpython_resolve::Resolution;
 use rpython_typeck::TypedCrate;
 use rpython_types::TyKind;
-use smol_str::SmolStr;
 
 #[derive(Clone, Debug)]
 pub struct COutput {
     pub source: String,
 }
 
-pub fn compile_crate_to_c(
-    mir: &MirCrate,
-    typed: &TypedCrate,
-    resolution: &Resolution,
-) -> COutput {
+pub fn compile_crate_to_c(mir: &MirCrate, typed: &TypedCrate, resolution: &Resolution) -> COutput {
     let mut emitter = CEmitter {
         out: String::new(),
         typed,
@@ -91,10 +85,11 @@ impl<'a> CEmitter<'a> {
                         }
                     }
                 }
-                TerminatorKind::SwitchInt { discr, .. } => {
-                    if let OperandPlace::ConstStr(s) = discr {
-                        self.intern_string(s);
-                    }
+                TerminatorKind::SwitchInt {
+                    discr: OperandPlace::ConstStr(s),
+                    ..
+                } => {
+                    self.intern_string(s);
                 }
                 _ => {}
             }
@@ -295,7 +290,11 @@ impl<'a> CEmitter<'a> {
         }
         for (i, s) in self.strings.iter().enumerate() {
             let escaped = escape_c(s);
-            writeln!(self.out, "static const char rpy_str_lit_{i}[] = \"{escaped}\";").ok();
+            writeln!(
+                self.out,
+                "static const char rpy_str_lit_{i}[] = \"{escaped}\";"
+            )
+            .ok();
             writeln!(
                 self.out,
                 "static const rpy_str rpy_str_{i} = {{ rpy_str_lit_{i}, {} }};",
@@ -308,9 +307,8 @@ impl<'a> CEmitter<'a> {
     fn emit_main_wrapper(&mut self, mir: &MirCrate) {
         let has_main = mir.functions.values().any(|f| f.name.as_str() == "main");
         if has_main {
-            self.out.push_str(
-                "int main(void) {\n  rpy_rt_init();\n  return (int)_rpy__main();\n}\n",
-            );
+            self.out
+                .push_str("int main(void) {\n  rpy_rt_init();\n  return (int)_rpy__main();\n}\n");
         }
     }
 

@@ -109,17 +109,11 @@ impl DefMap {
     }
 
     pub fn insert_name(&mut self, parent: DefId, name: SmolStr, def: DefId) {
-        self.children
-            .entry(parent)
-            .or_default()
-            .insert(name, def);
+        self.children.entry(parent).or_default().insert(name, def);
     }
 
     pub fn lookup(&self, parent: DefId, name: &str) -> Option<DefId> {
-        self.children
-            .get(&parent)?
-            .get(name)
-            .copied()
+        self.children.get(&parent)?.get(name).copied()
     }
 
     pub fn children_of(&self, parent: DefId) -> impl Iterator<Item = (&SmolStr, DefId)> + '_ {

@@ -12,10 +12,7 @@ pub struct Statement {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum StatementKind {
-    Assign {
-        place: Place,
-        rvalue: Rvalue,
-    },
+    Assign { place: Place, rvalue: Rvalue },
     StorageLive(LocalId),
     StorageDead(LocalId),
     Deinit(Place),

@@ -6,10 +6,10 @@ use rpython_hir_build::build_hir;
 use rpython_mir::{format_mir_crate, interp::interpret_crate, MirCrate};
 use rpython_mir_build::build_mir;
 use rpython_parse::parse_module;
-use rpython_resolve::{Resolution, resolve_crate};
-use rpython_typeck::TypedCrate;
+use rpython_resolve::{resolve_crate, Resolution};
 use rpython_syntax::tokenize;
 use rpython_typeck::typecheck;
+use rpython_typeck::TypedCrate;
 
 use crate::session::CompilerSession;
 
@@ -49,7 +49,7 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
         });
     }
 
-    let mut arena = Arena::new();
+    let arena = Arena::new();
     let module = parse_module(stream, &arena, &mut handler)
         .ok_or_else(|| anyhow::anyhow!("parse failed"))?;
     if handler.has_errors() {
@@ -163,16 +163,19 @@ pub fn emit_high_level_intermediate_representation(unit: &CompiledUnit) -> Strin
 }
 
 #[deprecated(note = "use emit_abstract_syntax_tree")]
+#[allow(dead_code)]
 pub fn emit_ast(unit: &CompiledUnit) -> String {
     emit_abstract_syntax_tree(unit)
 }
 
 #[deprecated(note = "use emit_mid_level_intermediate_representation")]
+#[allow(dead_code)]
 pub fn emit_mir(unit: &CompiledUnit) -> String {
     emit_mid_level_intermediate_representation(unit)
 }
 
 #[deprecated(note = "use emit_high_level_intermediate_representation")]
+#[allow(dead_code)]
 pub fn emit_hir(unit: &CompiledUnit) -> String {
     emit_high_level_intermediate_representation(unit)
 }

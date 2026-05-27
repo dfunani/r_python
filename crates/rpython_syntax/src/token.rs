@@ -21,13 +21,23 @@ pub enum TokenKind {
     Indent,
     Dedent,
 
-    IntLit { value: IntLiteral },
-    FloatLit { value: f64 },
-    StringLit { value: String },
-    BytesLit { value: Vec<u8> },
+    IntLit {
+        value: IntLiteral,
+    },
+    FloatLit {
+        value: f64,
+    },
+    StringLit {
+        value: String,
+    },
+    BytesLit {
+        value: Vec<u8>,
+    },
     BoolLit(bool),
 
-    Ident { name: SmolStr },
+    Ident {
+        name: SmolStr,
+    },
     KwDef,
     KwClass,
     KwEnum,

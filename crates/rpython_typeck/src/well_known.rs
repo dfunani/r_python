@@ -35,7 +35,7 @@ impl WellKnown {
         }
     }
 
-    pub fn type_for_builtin_def(&self, db: &TypeDatabase, def: DefId) -> Option<TypeId> {
+    pub fn type_for_builtin_def(&self, _db: &TypeDatabase, def: DefId) -> Option<TypeId> {
         if def == self.ty_int_def {
             Some(self.int)
         } else if def == self.ty_bool_def {

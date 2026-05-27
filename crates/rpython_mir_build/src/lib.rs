@@ -3,9 +3,8 @@
 mod builder;
 mod lower;
 
-use indexmap::IndexMap;
-use rpython_hir::HirCrate;
-use rpython_ids::{DefId, MirFuncId};
+use rpython_hir::{HirCrate, HirOwnerKind};
+use rpython_ids::MirFuncId;
 use rpython_mir::MirCrate;
 
 pub use lower::lower_function;
@@ -14,12 +13,11 @@ pub use lower::lower_function;
 pub fn build_mir(hir: &HirCrate) -> MirCrate {
     let mut crate_ = MirCrate::default();
     for (&def_id, owner) in &hir.owners {
-        if let rpython_hir::HirOwnerKind::Function(body) = &owner.kind {
-            let func_id = MirFuncId(crate_.functions.len() as u32);
-            let mir_body = lower::lower_function(body);
-            crate_.def_to_func.insert(def_id, func_id);
-            crate_.functions.insert(func_id, mir_body);
-        }
+        let HirOwnerKind::Function(body) = &owner.kind;
+        let func_id = MirFuncId(crate_.functions.len() as u32);
+        let mir_body = lower::lower_function(body);
+        crate_.def_to_func.insert(def_id, func_id);
+        crate_.functions.insert(func_id, mir_body);
     }
     crate_
 }

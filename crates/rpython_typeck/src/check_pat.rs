@@ -1,9 +1,8 @@
-use crate::unify::InferCtxt;
 use crate::TypeCtxt;
-use rpython_ast::{Arena, PatId, PatKind};
+use rpython_ast::{PatId, PatKind};
 use rpython_ids::TypeId;
 use rpython_resolve::DefKind;
-use rpython_types::{Subst, TyKind};
+use rpython_types::TyKind;
 
 impl<'a> TypeCtxt<'a> {
     pub fn check_pat(&mut self, pat: PatId, expected: TypeId) -> TypeId {
@@ -12,16 +11,16 @@ impl<'a> TypeCtxt<'a> {
         let ty = match pat_data.kind {
             PatKind::Wild => {
                 let var = self.db.fresh_infer();
-                let _ = self.infer.unify(
-                    &mut self.db,
-                    self.handler,
-                    expected,
-                    var,
-                    span,
-                );
+                let _ = self
+                    .infer
+                    .unify(&mut self.db, self.handler, expected, var, span);
                 var
             }
-            PatKind::Ident { name: _, mutability: _, subpat } => {
+            PatKind::Ident {
+                name: _,
+                mutability: _,
+                subpat,
+            } => {
                 let var = self.infer.resolve(&mut self.db, expected);
                 if let Some(sub) = subpat {
                     let sub_ty = self.check_pat(sub, var);
@@ -34,7 +33,10 @@ impl<'a> TypeCtxt<'a> {
                 let mut elems = Vec::new();
                 if let TyKind::Tuple(expected_elems) = self.db.kind(expected).clone() {
                     for (i, &p) in pats.iter().enumerate() {
-                        let exp = expected_elems.get(i).copied().unwrap_or_else(|| self.db.error());
+                        let exp = expected_elems
+                            .get(i)
+                            .copied()
+                            .unwrap_or_else(|| self.db.error());
                         let t = self.check_pat(p, exp);
                         elems.push(t);
                     }
@@ -55,11 +57,18 @@ impl<'a> TypeCtxt<'a> {
                 }
                 struct_ty
             }
-            PatKind::Enum { path, variant, subpats } => {
+            PatKind::Enum {
+                path,
+                variant,
+                subpats,
+            } => {
                 let enum_ty = self.resolve_path_type(&path, span);
                 let variant_ty = self.enum_variant_types(enum_ty, &variant);
                 for (i, &p) in subpats.iter().enumerate() {
-                    let exp = variant_ty.get(i).copied().unwrap_or_else(|| self.db.error());
+                    let exp = variant_ty
+                        .get(i)
+                        .copied()
+                        .unwrap_or_else(|| self.db.error());
                     let t = self.check_pat(p, exp);
                     self.pat_types.insert(p, t);
                 }

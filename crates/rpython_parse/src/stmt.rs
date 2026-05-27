@@ -1,6 +1,4 @@
-use rpython_ast::{
-    ElifArm, MatchArm, PatKind, PatMutability, StmtKind,
-};
+use rpython_ast::{ElifArm, MatchArm, PatKind, PatMutability, StmtKind};
 use rpython_ast::{ExprId, PatId, StmtId};
 use rpython_span::Span;
 use rpython_syntax::TokenKind;
@@ -40,6 +38,33 @@ impl Parser<'_> {
             return self.parse_for_stmt(start);
         } else if self.is_match_kw() {
             return self.parse_match_stmt(start);
+        } else if matches!(self.current_kind(), TokenKind::Ident { .. })
+            && matches!(self.peek_kind(1), Some(TokenKind::Colon))
+        {
+            let ident_start = self.current().span;
+            let TokenKind::Ident { name } = self.current_kind().clone() else {
+                return None;
+            };
+            self.bump();
+            self.skip_layout();
+            self.eat(TokenKind::Colon);
+            self.skip_layout();
+            let ty = self.parse_ty()?;
+            let value = if self.eat(TokenKind::Assign) {
+                self.skip_layout();
+                Some(self.parse_expr()?)
+            } else {
+                None
+            };
+            let target = self.arena.alloc_pat(
+                PatKind::Ident {
+                    name,
+                    mutability: PatMutability::Imm,
+                    subpat: None,
+                },
+                self.span_from(ident_start),
+            );
+            StmtKind::AnnAssign { target, ty, value }
         } else {
             let expr = self.parse_expr()?;
             self.skip_layout();
@@ -138,10 +163,10 @@ impl Parser<'_> {
         }
         let body = self.parse_block()?;
         let span = self.span_from(start);
-        Some(self.arena.alloc_stmt(
-            StmtKind::For { pat, iter, body },
-            span,
-        ))
+        Some(
+            self.arena
+                .alloc_stmt(StmtKind::For { pat, iter, body }, span),
+        )
     }
 
     fn parse_match_stmt(&mut self, start: Span) -> Option<StmtId> {
@@ -184,10 +209,10 @@ impl Parser<'_> {
         }
         self.eat(TokenKind::Dedent);
         let span = self.span_from(start);
-        Some(self.arena.alloc_stmt(
-            StmtKind::Match { scrutinee, arms },
-            span,
-        ))
+        Some(
+            self.arena
+                .alloc_stmt(StmtKind::Match { scrutinee, arms }, span),
+        )
     }
 
     pub fn parse_block(&mut self) -> Option<Vec<StmtId>> {

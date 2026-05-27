@@ -59,18 +59,15 @@ pub fn run_tests(path: &Path) -> Result<TestReport> {
 
     let mut report = TestReport::default();
     for (&func_id, func) in &mir.functions {
-        let item = module
-            .items
-            .iter()
-            .find_map(|&id| {
-                let item = arena.item(id);
-                if let ItemKind::Function { name, attrs, .. } = &item.kind {
-                    if name == &func.name && has_test_attr(attrs) {
-                        return Some(name.clone());
-                    }
+        let item = module.items.iter().find_map(|&id| {
+            let item = arena.item(id);
+            if let ItemKind::Function { name, attrs, .. } = &item.kind {
+                if name == &func.name && has_test_attr(attrs) {
+                    return Some(name.clone());
                 }
-                None
-            });
+            }
+            None
+        });
 
         if item.is_none() && !has_test_attr_on_fn(&arena, &module, &func.name) {
             continue;
@@ -84,7 +81,7 @@ pub fn run_tests(path: &Path) -> Result<TestReport> {
             Err(payload) => {
                 let message = payload
                     .downcast_ref::<String>()
-                    .map(|s| s.clone())
+                    .cloned()
                     .or_else(|| payload.downcast_ref::<&str>().map(|s| s.to_string()))
                     .unwrap_or_else(|| "panic".into());
                 report.failed += 1;
@@ -106,12 +103,7 @@ fn has_test_attr(attrs: &[Attribute]) -> bool {
 fn has_test_attr_on_fn(arena: &Arena, module: &rpython_ast::Module, name: &str) -> bool {
     for &id in &module.items {
         let item = arena.item(id);
-        if let ItemKind::Function {
-            name: n,
-            attrs,
-            ..
-        } = &item.kind
-        {
+        if let ItemKind::Function { name: n, attrs, .. } = &item.kind {
             if n.as_str() == name && has_test_attr(attrs) {
                 return true;
             }

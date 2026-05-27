@@ -19,21 +19,19 @@ pub use expr::{
     BinaryOp, Expr, ExprKind, FieldExpr, Kwarg, LambdaParam, Mutability as ExprMutability, UnaryOp,
 };
 pub use item::{
-    Abi, Attribute, ExternItem, FieldDef, GenericParam, ImplItem, Item, ItemKind,
-    InterfaceItem, Mutability as ItemMutability, Param, Variant, VariantFields,
+    Abi, Attribute, ExternItem, FieldDef, GenericParam, ImplItem, InterfaceItem, Item, ItemKind,
+    Mutability as ItemMutability, Param, Variant, VariantFields,
 };
 pub use literal::Literal;
 pub use pat::{Mutability as PatMutability, Pat, PatField, PatKind};
 pub use path::{Path, PathSegment};
-pub use rpython_ids::{
-    ExprId, ItemId, PatId, StmtId, TyId,
-};
+pub use rpython_ids::{ExprId, ItemId, PatId, StmtId, TyId};
 pub use rpython_span::Span;
 pub use stmt::{ElifArm, Label, MatchArm, Stmt, StmtKind};
 pub use ty::{Mutability as TyMutability, Ty, TyKind};
 pub use visit::{
-    walk_expr, walk_field_defs, walk_generic_params, walk_item, walk_module, walk_params,
-    walk_pat, walk_stmt, walk_ty, walk_variants, Visitor,
+    walk_expr, walk_field_defs, walk_generic_params, walk_item, walk_module, walk_params, walk_pat,
+    walk_stmt, walk_ty, walk_variants, Visitor,
 };
 
 /// Root of a parsed compilation unit.
@@ -57,10 +55,7 @@ mod tests {
     #[test]
     fn arena_alloc_and_pretty_print() {
         let mut arena = Arena::new();
-        let lit = arena.alloc_expr(
-            ExprKind::Literal(Literal::Int(42)),
-            span(),
-        );
+        let lit = arena.alloc_expr(ExprKind::Literal(Literal::Int(42)), span());
         let ret = arena.alloc_stmt(StmtKind::Return(Some(lit)), span());
         let _func = arena.alloc_item(
             ItemKind::Function {

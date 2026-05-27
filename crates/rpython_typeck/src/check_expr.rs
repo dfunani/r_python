@@ -1,8 +1,8 @@
 use crate::traits::MonoInstance;
 use crate::TypeCtxt;
 use rpython_ast::{
-    Arena, BinaryOp, ExprId, ExprKind, FieldExpr, ImplItem, ItemId, ItemKind, Literal, Path,
-    PatKind, StmtId, StmtKind, TyKind as AstTyKind, UnaryOp,
+    BinaryOp, ExprId, ExprKind, FieldExpr, ImplItem, ItemId, ItemKind, Literal, PatKind, Path,
+    StmtId, StmtKind, TyKind as AstTyKind, UnaryOp,
 };
 use rpython_errors::{Diagnostic, ErrorCode};
 use rpython_ids::{DefId, TypeId};
@@ -34,7 +34,9 @@ impl<'a> TypeCtxt<'a> {
                 let expected = self.ast_ty_to_type(*ty);
                 let got = self.check_expr(*value);
                 let span = self.arena.expr(*value).span;
-                let _ = self.infer.unify(&mut self.db, self.handler, expected, got, span);
+                let _ = self
+                    .infer
+                    .unify(&mut self.db, self.handler, expected, got, span);
             }
             ItemKind::Impl {
                 self_ty,
@@ -45,12 +47,20 @@ impl<'a> TypeCtxt<'a> {
                 let self_type = self.ast_ty_to_type(*self_ty);
                 let mut methods = indexmap::IndexMap::new();
                 let impl_def = self.find_impl_def_for_type(self_type);
-                let interface_def = interface_ref
-                    .as_ref()
-                    .and_then(|p| self.resolution.def_map.lookup(self.root, p.segments.last()?.ident.as_str()));
+                let interface_def = interface_ref.as_ref().and_then(|p| {
+                    self.resolution
+                        .def_map
+                        .lookup(self.root, p.segments.last()?.ident.as_str())
+                });
                 for impl_item in items {
-                    if let ImplItem::Function { name, params, ret_ty, body, span, .. } =
-                        impl_item
+                    if let ImplItem::Function {
+                        name,
+                        params,
+                        ret_ty,
+                        body,
+                        span,
+                        ..
+                    } = impl_item
                     {
                         let method_def = impl_def
                             .and_then(|d| self.resolution.def_map.lookup(d, name))
@@ -122,7 +132,9 @@ impl<'a> TypeCtxt<'a> {
     }
 
     fn find_impl_method_def(&self, self_ty: TypeId, method: &str) -> Option<DefId> {
-        let ty_name = self.adt_def_id(self_ty).and_then(|d| self.resolution.def_map.name(d))?;
+        let ty_name = self
+            .adt_def_id(self_ty)
+            .and_then(|d| self.resolution.def_map.name(d))?;
         for (def, kind) in self.resolution.def_map.iter() {
             if let DefKind::Impl { self_ty_name, .. } = kind {
                 if self_ty_name.as_str() == ty_name.as_str() {
@@ -155,13 +167,9 @@ impl<'a> TypeCtxt<'a> {
         match &stmt.kind {
             StmtKind::Expr(e) => {
                 let ty = self.check_expr(*e);
-                let _ = self.infer.unify(
-                    &mut self.db,
-                    self.handler,
-                    ty,
-                    self.wk.unit,
-                    stmt.span,
-                );
+                let _ = self
+                    .infer
+                    .unify(&mut self.db, self.handler, ty, self.wk.unit, stmt.span);
             }
             StmtKind::Assign { targets, value } => {
                 let val_ty = self.check_expr(*value);
@@ -181,19 +189,17 @@ impl<'a> TypeCtxt<'a> {
                         .unify(&mut self.db, self.handler, expected, got, stmt.span);
                 }
                 let _ = self.check_pat(*target, expected);
+                if let Some(def) = self.local_def_for_pat(*target) {
+                    self.local_types.insert(def, expected);
+                }
             }
             StmtKind::Return(expr) => {
                 self.return_checked = true;
-                let ret = expr
-                    .map(|e| self.check_expr(e))
-                    .unwrap_or(self.wk.unit);
-                if !self.infer.unify(
-                    &mut self.db,
-                    self.handler,
-                    self.return_ty,
-                    ret,
-                    stmt.span,
-                ) {
+                let ret = expr.map(|e| self.check_expr(e)).unwrap_or(self.wk.unit);
+                if !self
+                    .infer
+                    .unify(&mut self.db, self.handler, self.return_ty, ret, stmt.span)
+                {
                     self.handler.emit(
                         Diagnostic::error("return type mismatch")
                             .with_code(ErrorCode::E0304)
@@ -225,13 +231,9 @@ impl<'a> TypeCtxt<'a> {
             StmtKind::For { pat, iter, body } => {
                 let iter_ty = self.check_expr(*iter);
                 let elem = self.db.fresh_infer();
-                let _ = self.infer.unify(
-                    &mut self.db,
-                    self.handler,
-                    iter_ty,
-                    self.wk.int,
-                    stmt.span,
-                );
+                let _ =
+                    self.infer
+                        .unify(&mut self.db, self.handler, iter_ty, self.wk.int, stmt.span);
                 let _ = self.check_pat(*pat, elem);
                 for &s in body {
                     self.check_stmt(s);
@@ -252,13 +254,9 @@ impl<'a> TypeCtxt<'a> {
                 }
                 for elif in elifs {
                     let t = self.check_expr(elif.test);
-                    let _ = self.infer.unify(
-                        &mut self.db,
-                        self.handler,
-                        t,
-                        self.wk.bool,
-                        elif.span,
-                    );
+                    let _ =
+                        self.infer
+                            .unify(&mut self.db, self.handler, t, self.wk.bool, elif.span);
                     for &s in &elif.body {
                         self.check_stmt(s);
                     }
@@ -409,23 +407,15 @@ impl<'a> TypeCtxt<'a> {
                 let ot = self.check_expr(*operand);
                 match op {
                     UnaryOp::Not => {
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            ot,
-                            self.wk.bool,
-                            span,
-                        );
+                        let _ =
+                            self.infer
+                                .unify(&mut self.db, self.handler, ot, self.wk.bool, span);
                         self.wk.bool
                     }
                     UnaryOp::Neg | UnaryOp::Pos => {
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            ot,
-                            self.wk.int,
-                            span,
-                        );
+                        let _ = self
+                            .infer
+                            .unify(&mut self.db, self.handler, ot, self.wk.int, span);
                         self.wk.int
                     }
                     UnaryOp::BitNot => ot,
@@ -436,20 +426,12 @@ impl<'a> TypeCtxt<'a> {
                 let rt = self.check_expr(*right);
                 match op {
                     BinaryOp::And | BinaryOp::Or => {
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            lt,
-                            self.wk.bool,
-                            span,
-                        );
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            rt,
-                            self.wk.bool,
-                            span,
-                        );
+                        let _ =
+                            self.infer
+                                .unify(&mut self.db, self.handler, lt, self.wk.bool, span);
+                        let _ =
+                            self.infer
+                                .unify(&mut self.db, self.handler, rt, self.wk.bool, span);
                         self.wk.bool
                     }
                     BinaryOp::Eq
@@ -463,20 +445,12 @@ impl<'a> TypeCtxt<'a> {
                         self.wk.bool
                     }
                     BinaryOp::Add if self.is_str(lt) || self.is_str(rt) => {
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            lt,
-                            self.wk.str,
-                            span,
-                        );
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            rt,
-                            self.wk.str,
-                            span,
-                        );
+                        let _ = self
+                            .infer
+                            .unify(&mut self.db, self.handler, lt, self.wk.str, span);
+                        let _ = self
+                            .infer
+                            .unify(&mut self.db, self.handler, rt, self.wk.str, span);
                         self.wk.str
                     }
                     BinaryOp::Add
@@ -486,20 +460,12 @@ impl<'a> TypeCtxt<'a> {
                     | BinaryOp::Mod
                     | BinaryOp::FloorDiv
                     | BinaryOp::Pow => {
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            lt,
-                            self.wk.int,
-                            span,
-                        );
-                        let _ = self.infer.unify(
-                            &mut self.db,
-                            self.handler,
-                            rt,
-                            self.wk.int,
-                            span,
-                        );
+                        let _ = self
+                            .infer
+                            .unify(&mut self.db, self.handler, lt, self.wk.int, span);
+                        let _ = self
+                            .infer
+                            .unify(&mut self.db, self.handler, rt, self.wk.int, span);
                         self.wk.int
                     }
                     BinaryOp::In => self.wk.bool,
@@ -529,8 +495,12 @@ impl<'a> TypeCtxt<'a> {
                 let ty1 = self.check_expr(*then);
                 let ty2 = self.check_expr(*else_branch);
                 let merged = self.db.fresh_infer();
-                let _ = self.infer.unify(&mut self.db, self.handler, merged, ty1, span);
-                let _ = self.infer.unify(&mut self.db, self.handler, merged, ty2, span);
+                let _ = self
+                    .infer
+                    .unify(&mut self.db, self.handler, merged, ty1, span);
+                let _ = self
+                    .infer
+                    .unify(&mut self.db, self.handler, merged, ty2, span);
                 self.infer.resolve(&mut self.db, merged)
             }
             ExprKind::Block(stmts) => {
@@ -591,13 +561,9 @@ impl<'a> TypeCtxt<'a> {
         for f in fields {
             let expected = self.struct_field_type(struct_ty, &f.name);
             let got = self.check_expr(f.expr);
-            let _ = self.infer.unify(
-                &mut self.db,
-                self.handler,
-                expected,
-                got,
-                f.span,
-            );
+            let _ = self
+                .infer
+                .unify(&mut self.db, self.handler, expected, got, f.span);
         }
         struct_ty
     }
@@ -619,10 +585,7 @@ impl<'a> TypeCtxt<'a> {
     }
 
     fn expr_def(&self, id: ExprId) -> Option<DefId> {
-        self.resolution
-            .expr_bindings
-            .get(&id)
-            .map(|b| b.def)
+        self.resolution.expr_bindings.get(&id).map(|b| b.def)
     }
 
     fn fn_ty_parts(&mut self, callee: TypeId, _span: rpython_span::Span) -> (Vec<TypeId>, TypeId) {
@@ -630,7 +593,7 @@ impl<'a> TypeCtxt<'a> {
             return self.function_sig_parts(*def);
         }
         if callee == self.db.fn_def(self.wk.print, Subst::empty())
-            || self.item_sigs.get(&self.wk.print).is_some()
+            || self.item_sigs.contains_key(&self.wk.print)
         {
             return (vec![self.db.fresh_infer()], self.wk.unit);
         }
@@ -645,20 +608,14 @@ impl<'a> TypeCtxt<'a> {
             return sig;
         }
         match self.resolution.def_map.get(def).cloned() {
-            Some(rpython_resolve::DefKind::Function { .. }) => {
-                self.db.fn_def(def, Subst::empty())
-            }
+            Some(rpython_resolve::DefKind::Function { .. }) => self.db.fn_def(def, Subst::empty()),
             Some(rpython_resolve::DefKind::Struct { .. })
             | Some(rpython_resolve::DefKind::Enum { .. }) => self.db.adt(def, Subst::empty()),
-            Some(rpython_resolve::DefKind::BuiltinFn { .. }) => {
-                self.db.fn_def(def, Subst::empty())
-            }
+            Some(rpython_resolve::DefKind::BuiltinFn { .. }) => self.db.fn_def(def, Subst::empty()),
             Some(rpython_resolve::DefKind::Local { .. })
-            | Some(rpython_resolve::DefKind::Param { .. }) => self
-                .local_types
-                .get(&def)
-                .copied()
-                .unwrap_or(self.wk.int),
+            | Some(rpython_resolve::DefKind::Param { .. }) => {
+                self.local_types.get(&def).copied().unwrap_or(self.wk.int)
+            }
             _ => self.db.error(),
         }
     }
@@ -703,9 +660,7 @@ impl<'a> TypeCtxt<'a> {
             AstTyKind::Ref { inner, .. } => self.ast_ty_to_type(*inner),
             AstTyKind::Fn { params, ret } => {
                 let ps: Vec<_> = params.iter().map(|&t| self.ast_ty_to_type(t)).collect();
-                let r = ret
-                    .map(|t| self.ast_ty_to_type(t))
-                    .unwrap_or(self.wk.unit);
+                let r = ret.map(|t| self.ast_ty_to_type(t)).unwrap_or(self.wk.unit);
                 self.db.intern(TyKind::FnPtr {
                     sig: rpython_types::FnSig { params: ps, ret: r },
                 })

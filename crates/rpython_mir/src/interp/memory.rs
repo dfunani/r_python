@@ -45,9 +45,9 @@ fn project_get(mut val: Value, projs: &[Projection]) -> Value {
                 _ => Value::Unit,
             },
             Projection::Downcast(v) => match val {
-                Value::Enum { variant, payload, .. } if variant == *v => {
-                    payload.map(|p| *p).unwrap_or(Value::Unit)
-                }
+                Value::Enum {
+                    variant, payload, ..
+                } if variant == *v => payload.map(|p| *p).unwrap_or(Value::Unit),
                 _ => Value::Unit,
             },
             Projection::Deref | Projection::Index(_) => val,
@@ -61,12 +61,18 @@ fn project_set(mut val: Value, projs: &[Projection], new_val: Value) -> Value {
         return new_val;
     }
     match (&projs[0], &mut val) {
-        (Projection::Field(i), Value::Struct { fields, .. }) | (Projection::Field(i), Value::Tuple(fields)) => {
+        (Projection::Field(i), Value::Struct { fields, .. })
+        | (Projection::Field(i), Value::Tuple(fields)) => {
             if let Some(slot) = fields.get_mut(*i as usize) {
                 *slot = project_set(slot.clone(), &projs[1..], new_val);
             }
         }
-        (Projection::Downcast(v), Value::Enum { variant, payload, .. }) if *variant == *v => {
+        (
+            Projection::Downcast(v),
+            Value::Enum {
+                variant, payload, ..
+            },
+        ) if *variant == *v => {
             *payload = Some(Box::new(project_set(
                 payload.take().map(|p| *p).unwrap_or(Value::Unit),
                 &projs[1..],

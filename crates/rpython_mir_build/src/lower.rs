@@ -1,10 +1,11 @@
 use rpython_hir::{
     AggregateKind, HirBody, HirConst, HirExprKind, HirStmtKind, Operand, Place, Rvalue, UnaryOp,
 };
-use rpython_ids::{BlockId, LocalId};
+use rpython_ids::LocalId;
 use rpython_mir::{
-    AggregateKind as MirAggregateKind, BinOp, ConstValue, FnOperand, MirBody, Operand as MirOperand,
-    Place as MirPlace, Projection, Rvalue as MirRvalue, TerminatorKind, UnaryOp as MirUnaryOp,
+    AggregateKind as MirAggregateKind, BinOp, ConstValue, FnOperand, MirBody,
+    Operand as MirOperand, Place as MirPlace, Projection, Rvalue as MirRvalue, TerminatorKind,
+    UnaryOp as MirUnaryOp,
 };
 use rpython_span::Span;
 use rpython_types::Mutability;
@@ -30,10 +31,7 @@ pub fn lower_function(body: &HirBody) -> MirBody {
         builder.blocks.last().map(|b| &b.terminator.kind),
         Some(TerminatorKind::Return) | Some(TerminatorKind::Unreachable)
     ) {
-        builder.terminate(
-            TerminatorKind::Return,
-            span,
-        );
+        builder.terminate(TerminatorKind::Return, span);
     }
 
     MirBody {
@@ -240,12 +238,7 @@ fn lower_expr(
     }
 }
 
-fn lower_rvalue(
-    builder: &mut MirBuilder,
-    body: &HirBody,
-    rv: &Rvalue,
-    span: Span,
-) -> MirRvalue {
+fn lower_rvalue(_builder: &mut MirBuilder, _body: &HirBody, rv: &Rvalue, _span: Span) -> MirRvalue {
     match rv {
         Rvalue::Use(op) => MirRvalue::Use(lower_operand(op)),
         Rvalue::UnaryOp { op, operand } => MirRvalue::UnaryOp {

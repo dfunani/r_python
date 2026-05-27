@@ -15,11 +15,24 @@ pub struct Ty {
 pub enum TyKind {
     Path(Path),
     Tuple(Vec<TyId>),
-    Array { elem: TyId, len: Option<u64> },
-    Slice { elem: TyId },
-    Ref { mutability: Mutability, inner: TyId },
-    Fn { params: Vec<TyId>, ret: Option<TyId> },
-    GenericParam { name: SmolStr },
+    Array {
+        elem: TyId,
+        len: Option<u64>,
+    },
+    Slice {
+        elem: TyId,
+    },
+    Ref {
+        mutability: Mutability,
+        inner: TyId,
+    },
+    Fn {
+        params: Vec<TyId>,
+        ret: Option<TyId>,
+    },
+    GenericParam {
+        name: SmolStr,
+    },
 }
 
 /// Reference mutability for `&T` / `&mut T`.

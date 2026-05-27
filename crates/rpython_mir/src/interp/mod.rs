@@ -21,7 +21,10 @@ pub fn interpret_crate(crate_: &MirCrate) -> Result<(), String> {
         .find(|f| f.name.as_str() == "main")
         .map(|f| f.def_id);
     let func_id = if let Some(def) = main_def {
-        *crate_.def_to_func.get(&def).ok_or("main not in def_to_func")?
+        *crate_
+            .def_to_func
+            .get(&def)
+            .ok_or("main not in def_to_func")?
     } else {
         *crate_
             .def_to_func
@@ -35,10 +38,7 @@ pub fn interpret_crate(crate_: &MirCrate) -> Result<(), String> {
 
 /// Interpret a function in a crate (supports calls).
 pub fn interpret(crate_: &MirCrate, func: MirFuncId, args: Vec<Value>) -> Value {
-    let body = crate_
-        .functions
-        .get(&func)
-        .expect("unknown MirFuncId");
+    let body = crate_.functions.get(&func).expect("unknown MirFuncId");
     interpret_body(crate_, body, args)
 }
 
@@ -100,10 +100,7 @@ fn eval_call(
         return None;
     };
     if let Some(mir_id) = crate_.def_to_func.get(def) {
-        let arg_vals: Vec<Value> = args
-            .iter()
-            .map(|a| eval_operand_place(frame, a))
-            .collect();
+        let arg_vals: Vec<Value> = args.iter().map(|a| eval_operand_place(frame, a)).collect();
         return Some(interpret(crate_, *mir_id, arg_vals));
     }
     // Builtins (not lowered to MIR bodies): `print` for now.
@@ -141,11 +138,9 @@ fn eval_rvalue(frame: &Frame, rv: &Rvalue) -> Value {
     match rv {
         Rvalue::Use(op) => eval_operand(frame, op),
         Rvalue::UnaryOp { op, operand } => ops::unary_op(*op, eval_operand(frame, operand)),
-        Rvalue::BinaryOp { op, left, right } => ops::binary_op(
-            *op,
-            eval_operand(frame, left),
-            eval_operand(frame, right),
-        ),
+        Rvalue::BinaryOp { op, left, right } => {
+            ops::binary_op(*op, eval_operand(frame, left), eval_operand(frame, right))
+        }
         Rvalue::Aggregate { kind, ops } => {
             let vals: Vec<Value> = ops.iter().map(|o| eval_operand(frame, o)).collect();
             match kind {

@@ -12,8 +12,8 @@ mod symbols;
 pub use def_map::{DefKind, DefMap};
 pub use imports::ImportRecord;
 pub use resolved::{resolve_path, ResolvedCrate};
-pub use symbols::{Binding, NameBinding};
 pub use scope::{Scope, ScopeKind};
+pub use symbols::{Binding, NameBinding};
 
 use collect::Collector;
 use def_map::DefKind as DK;
@@ -57,11 +57,7 @@ pub struct Resolution {
 }
 
 /// Resolve names in `module` using `arena` for AST nodes.
-pub fn resolve_crate(
-    module: &Module,
-    arena: &Arena,
-    handler: &mut Handler,
-) -> Option<Resolution> {
+pub fn resolve_crate(module: &Module, arena: &Arena, handler: &mut Handler) -> Option<Resolution> {
     let crate_id = CrateId(0);
     let root_module = ModuleId(0);
     let mut def_map = DefMap::new(root_module);
@@ -81,7 +77,14 @@ pub fn resolve_crate(
     }
 
     let mut imports = Vec::new();
-    process_imports(module, arena, &mut def_map, &mut ribs, handler, &mut imports);
+    process_imports(
+        module,
+        arena,
+        &mut def_map,
+        &mut ribs,
+        handler,
+        &mut imports,
+    );
 
     let mut expr_bindings = FxHashMap::default();
     let mut resolver = ExprResolver {
@@ -136,7 +139,9 @@ fn inject_builtins(def_map: &mut DefMap, parent: DefId, ribs: &mut RibStack) -> 
     def_map.insert_name(parent, "int".into(), ty_int);
     ribs.define("int".into(), ty_int);
 
-    let ty_bool = def_map.alloc(DK::BuiltinType { name: "bool".into() });
+    let ty_bool = def_map.alloc(DK::BuiltinType {
+        name: "bool".into(),
+    });
     def_map.insert_name(parent, "bool".into(), ty_bool);
     ribs.define("bool".into(), ty_bool);
 
@@ -144,15 +149,21 @@ fn inject_builtins(def_map: &mut DefMap, parent: DefId, ribs: &mut RibStack) -> 
     def_map.insert_name(parent, "str".into(), ty_str);
     ribs.define("str".into(), ty_str);
 
-    let ty_unit = def_map.alloc(DK::BuiltinType { name: "void".into() });
+    let ty_unit = def_map.alloc(DK::BuiltinType {
+        name: "void".into(),
+    });
     def_map.insert_name(parent, "void".into(), ty_unit);
     ribs.define("void".into(), ty_unit);
 
-    let ty_float = def_map.alloc(DK::BuiltinType { name: "float".into() });
+    let ty_float = def_map.alloc(DK::BuiltinType {
+        name: "float".into(),
+    });
     def_map.insert_name(parent, "float".into(), ty_float);
     ribs.define("float".into(), ty_float);
 
-    let print = def_map.alloc(DK::BuiltinFn { name: "print".into() });
+    let print = def_map.alloc(DK::BuiltinFn {
+        name: "print".into(),
+    });
     def_map.insert_name(parent, "print".into(), print);
     ribs.define("print".into(), print);
 
@@ -266,6 +277,9 @@ mod tests {
         let res = resolve_crate(&module, &arena, &mut handler).unwrap();
         assert!(!handler.has_errors());
         assert!(res.def_map.lookup(res.def_map.root_def(), "main").is_some());
-        assert!(res.def_map.lookup(res.def_map.root_def(), "print").is_some());
+        assert!(res
+            .def_map
+            .lookup(res.def_map.root_def(), "print")
+            .is_some());
     }
 }

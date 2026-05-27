@@ -1,9 +1,7 @@
 use crate::def_map::DefMap;
 use crate::ribs::RibStack;
 use crate::symbols::NameBinding;
-use rpython_ast::{
-    Arena, ExprId, ExprKind, ImplItem, ItemId, ItemKind, PatKind, StmtId, StmtKind,
-};
+use rpython_ast::{Arena, ExprId, ExprKind, ImplItem, ItemId, ItemKind, PatKind, StmtId, StmtKind};
 use rpython_errors::{Diagnostic, ErrorCode, Handler};
 use rpython_ids::DefId;
 use rustc_hash::FxHashMap;
@@ -29,10 +27,7 @@ impl<'a> ExprResolver<'a> {
         let item = arena.item(id);
         match &item.kind {
             ItemKind::Function {
-                name,
-                params,
-                body,
-                ..
+                name, params, body, ..
             } => {
                 if let Some(def) = self.def_map.lookup(self.module_parent, name) {
                     self.resolve_function(def, params, body, arena);
@@ -42,10 +37,7 @@ impl<'a> ExprResolver<'a> {
             ItemKind::Impl { items, .. } => {
                 for impl_item in items {
                     if let ImplItem::Function {
-                        name,
-                        params,
-                        body,
-                        ..
+                        name, params, body, ..
                     } = impl_item
                     {
                         if let Some(def) = self.ribs.resolve(name) {
@@ -71,8 +63,11 @@ impl<'a> ExprResolver<'a> {
         arena: &Arena,
     ) {
         self.current_fn = Some(owner);
-        self.ribs
-            .push(crate::scope::ScopeKind::Function, owner, Some(self.module_parent));
+        self.ribs.push(
+            crate::scope::ScopeKind::Function,
+            owner,
+            Some(self.module_parent),
+        );
         for param in params {
             if let Some(def) = self.def_map.lookup(owner, &param.name) {
                 let _ = self.ribs.define(param.name.clone(), def);
@@ -153,8 +148,11 @@ impl<'a> ExprResolver<'a> {
     }
 
     fn resolve_block(&mut self, stmts: &[StmtId], arena: &Arena) {
-        self.ribs
-            .push(crate::scope::ScopeKind::Block, self.current_fn.unwrap_or(self.module_parent), self.current_fn);
+        self.ribs.push(
+            crate::scope::ScopeKind::Block,
+            self.current_fn.unwrap_or(self.module_parent),
+            self.current_fn,
+        );
         for &stmt in stmts {
             self.resolve_stmt(stmt, arena);
         }

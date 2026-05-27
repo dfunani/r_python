@@ -1,4 +1,4 @@
-# Hello — lexer demo (full compilation arrives in later milestones)
+# Hello — statically typed entrypoint (not dynamic CPython)
 def main() -> int:
     print("hello, rPython")
     return 0

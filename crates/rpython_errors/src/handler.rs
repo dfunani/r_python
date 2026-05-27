@@ -26,10 +26,7 @@ impl Handler {
     }
 
     pub fn error(&mut self, span: rpython_span::Span, message: impl Into<String>) {
-        self.emit(
-            Diagnostic::error(message)
-                .with_label(span, "", true),
-        );
+        self.emit(Diagnostic::error(message).with_label(span, "", true));
     }
 
     pub fn has_errors(&self) -> bool {

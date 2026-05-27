@@ -21,7 +21,11 @@ pub fn binary_op(op: BinOp, left: Value, right: Value) -> Value {
         BinOp::Le => Value::Bool(left.as_int().unwrap_or(0) <= right.as_int().unwrap_or(0)),
         BinOp::Gt => Value::Bool(left.as_int().unwrap_or(0) > right.as_int().unwrap_or(0)),
         BinOp::Ge => Value::Bool(left.as_int().unwrap_or(0) >= right.as_int().unwrap_or(0)),
-        BinOp::And => Value::Bool(left.as_bool().unwrap_or(false) && right.as_bool().unwrap_or(false)),
-        BinOp::Or => Value::Bool(left.as_bool().unwrap_or(false) || right.as_bool().unwrap_or(false)),
+        BinOp::And => {
+            Value::Bool(left.as_bool().unwrap_or(false) && right.as_bool().unwrap_or(false))
+        }
+        BinOp::Or => {
+            Value::Bool(left.as_bool().unwrap_or(false) || right.as_bool().unwrap_or(false))
+        }
     }
 }

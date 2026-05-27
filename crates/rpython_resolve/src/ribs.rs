@@ -21,11 +21,9 @@ impl RibStack {
         self.scopes.pop();
     }
 
+    #[allow(dead_code)]
     pub fn current_owner(&self) -> DefId {
-        self.scopes
-            .last()
-            .map(|s| s.owner)
-            .unwrap_or(DefId(0))
+        self.scopes.last().map(|s| s.owner).unwrap_or(DefId(0))
     }
 
     pub fn current(&mut self) -> &mut Scope {
@@ -52,6 +50,7 @@ impl RibStack {
         None
     }
 
+    #[allow(dead_code)]
     pub fn depth(&self) -> usize {
         self.scopes.len()
     }

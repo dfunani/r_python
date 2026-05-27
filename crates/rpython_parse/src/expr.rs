@@ -1,7 +1,5 @@
-use rpython_ast::{
-    BinaryOp, ExprId, ExprKind, FieldExpr, Literal, Path, PathSegment, UnaryOp,
-};
 use rpython_ast::TyId;
+use rpython_ast::{BinaryOp, ExprId, ExprKind, FieldExpr, Literal, Path, PathSegment, UnaryOp};
 use rpython_span::Span;
 use rpython_syntax::{IntLiteral, TokenKind};
 use smol_str::SmolStr;
@@ -219,10 +217,10 @@ impl Parser<'_> {
                 };
                 let fields = self.parse_struct_fields(start)?;
                 let span = self.span_from(start);
-                return Some(self.arena.alloc_expr(
-                    ExprKind::Struct { path, fields },
-                    span,
-                ));
+                return Some(
+                    self.arena
+                        .alloc_expr(ExprKind::Struct { path, fields }, span),
+                );
             }
             TokenKind::KwIf => {
                 return self.parse_if_expr(start);
@@ -230,10 +228,7 @@ impl Parser<'_> {
             _ => {
                 self.error(
                     start,
-                    format!(
-                        "expected expression, found {}",
-                        self.current().kind.name()
-                    ),
+                    format!("expected expression, found {}", self.current().kind.name()),
                 );
                 return None;
             }
@@ -324,10 +319,8 @@ impl Parser<'_> {
                 TokenKind::LParen => {
                     self.bump();
                     let args = self.parse_call_args()?;
-                    let span = Span::merge(
-                        self.arena.expr(expr).span,
-                        self.tokens[self.pos - 1].span,
-                    );
+                    let span =
+                        Span::merge(self.arena.expr(expr).span, self.tokens[self.pos - 1].span);
                     expr = self.arena.alloc_expr(
                         ExprKind::Call {
                             func: expr,
@@ -342,11 +335,11 @@ impl Parser<'_> {
                         let path = path.clone();
                         self.bump();
                         let fields = self.parse_struct_fields(self.current().span)?;
-                        let span = Span::merge(
-                            self.arena.expr(expr).span,
-                            self.tokens[self.pos - 1].span,
-                        );
-                        expr = self.arena.alloc_expr(ExprKind::Struct { path, fields }, span);
+                        let span =
+                            Span::merge(self.arena.expr(expr).span, self.tokens[self.pos - 1].span);
+                        expr = self
+                            .arena
+                            .alloc_expr(ExprKind::Struct { path, fields }, span);
                     } else {
                         self.error(self.current().span, "unexpected '{'");
                         return None;
@@ -367,10 +360,8 @@ impl Parser<'_> {
                     };
                     if self.eat(TokenKind::LParen) {
                         let args = self.parse_call_args()?;
-                        let span = Span::merge(
-                            self.arena.expr(expr).span,
-                            self.tokens[self.pos - 1].span,
-                        );
+                        let span =
+                            Span::merge(self.arena.expr(expr).span, self.tokens[self.pos - 1].span);
                         expr = self.arena.alloc_expr(
                             ExprKind::MethodCall {
                                 receiver: expr,
@@ -380,17 +371,11 @@ impl Parser<'_> {
                             span,
                         );
                     } else {
-                        let span = Span::merge(
-                            self.arena.expr(expr).span,
-                            self.tokens[self.pos - 1].span,
-                        );
-                        expr = self.arena.alloc_expr(
-                            ExprKind::Field {
-                                base: expr,
-                                field,
-                            },
-                            span,
-                        );
+                        let span =
+                            Span::merge(self.arena.expr(expr).span, self.tokens[self.pos - 1].span);
+                        expr = self
+                            .arena
+                            .alloc_expr(ExprKind::Field { base: expr, field }, span);
                     }
                 }
                 TokenKind::LBracket => {
@@ -401,17 +386,11 @@ impl Parser<'_> {
                     if !self.expect(TokenKind::RBracket, "expected ']'") {
                         return None;
                     }
-                    let span = Span::merge(
-                        self.arena.expr(expr).span,
-                        self.tokens[self.pos - 1].span,
-                    );
-                    expr = self.arena.alloc_expr(
-                        ExprKind::Index {
-                            base: expr,
-                            index,
-                        },
-                        span,
-                    );
+                    let span =
+                        Span::merge(self.arena.expr(expr).span, self.tokens[self.pos - 1].span);
+                    expr = self
+                        .arena
+                        .alloc_expr(ExprKind::Index { base: expr, index }, span);
                 }
                 _ => break,
             }

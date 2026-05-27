@@ -3,7 +3,7 @@ use std::fmt::{self, Write};
 use rpython_ids::BlockId;
 
 use crate::body::{BasicBlock, MirBody};
-use crate::operand::{ConstValue, FnOperand, Operand};
+use crate::operand::{ConstValue, Operand};
 use crate::place::{Place, Projection};
 use crate::rvalue::Rvalue;
 use crate::statement::{Statement, StatementKind};
@@ -48,11 +48,7 @@ impl<'a> MirPrinter<'a> {
     fn print_stmt(&mut self, stmt: &Statement) {
         match &stmt.kind {
             StatementKind::Assign { place, rvalue } => {
-                let _ = writeln!(
-                    self.out,
-                    "      {place} = {}",
-                    self.fmt_rvalue(rvalue)
-                );
+                let _ = writeln!(self.out, "      {place} = {}", self.fmt_rvalue(rvalue));
             }
             StatementKind::StorageLive(l) => {
                 let _ = writeln!(self.out, "      StorageLive(_{})", l.index());
@@ -135,7 +131,9 @@ impl<'a> MirPrinter<'a> {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            Rvalue::Ref { mutability, place, .. } => format!("&{mutability:?} {place}"),
+            Rvalue::Ref {
+                mutability, place, ..
+            } => format!("&{mutability:?} {place}"),
             Rvalue::Len(p) => format!("len({p})"),
             Rvalue::Cast { operand, .. } => format!("cast({})", self.fmt_operand(operand)),
             Rvalue::Discriminant(p) => format!("discriminant({p})"),

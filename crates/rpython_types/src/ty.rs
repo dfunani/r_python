@@ -142,6 +142,10 @@ impl TypeDatabase {
         self.kinds.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.kinds.is_empty()
+    }
+
     pub fn bool(&mut self) -> TypeId {
         self.intern(TyKind::Bool)
     }
@@ -240,19 +244,11 @@ impl TypeDatabase {
                 })
             }
             TyKind::Adt { def, subst: s } => {
-                let new_args: Vec<_> = s
-                    .args
-                    .iter()
-                    .map(|&t| self.substitute(t, subst))
-                    .collect();
+                let new_args: Vec<_> = s.args.iter().map(|&t| self.substitute(t, subst)).collect();
                 self.adt(def, Subst::from_args(new_args))
             }
             TyKind::FnDef { def, subst: s } => {
-                let new_args: Vec<_> = s
-                    .args
-                    .iter()
-                    .map(|&t| self.substitute(t, subst))
-                    .collect();
+                let new_args: Vec<_> = s.args.iter().map(|&t| self.substitute(t, subst)).collect();
                 self.fn_def(def, Subst::from_args(new_args))
             }
             TyKind::FnPtr { sig } => {

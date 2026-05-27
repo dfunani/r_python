@@ -11,7 +11,5 @@ pub use expr::{HirExpr, HirExprKind};
 pub use ids::{HirExprId, HirPatId, HirStmtId};
 pub use owner::{HirCrate, HirOwner, HirOwnerKind};
 pub use pat::{HirPat, HirPatKind};
-pub use place::{
-    AggregateKind, BinaryOp, HirConst, Operand, Place, Projection, Rvalue, UnaryOp,
-};
+pub use place::{AggregateKind, BinaryOp, HirConst, Operand, Place, Projection, Rvalue, UnaryOp};
 pub use stmt::{HirBody, HirStmt, HirStmtKind, LocalDecl};

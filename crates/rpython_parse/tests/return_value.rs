@@ -27,5 +27,8 @@ fn return_with_value_is_not_split_into_two_stmts() {
         panic!("expected return with value, got {:?}", stmt.kind);
     };
     let expr = arena.expr(*expr);
-    assert!(matches!(expr.kind, ExprKind::Literal(rpython_ast::Literal::Int(0))));
+    assert!(matches!(
+        expr.kind,
+        ExprKind::Literal(rpython_ast::Literal::Int(0))
+    ));
 }

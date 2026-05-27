@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{bail, Context, Result};
@@ -32,10 +32,18 @@ struct Cli {
     #[arg(value_name = "FILE")]
     input: Option<PathBuf>,
 
-    #[arg(short = 'r', long, help = "Run via MIR interpreter (legacy; prefer: rpythonc run FILE)")]
+    #[arg(
+        short = 'r',
+        long,
+        help = "Run via MIR interpreter (legacy; prefer: rpythonc run FILE)"
+    )]
     run: bool,
 
-    #[arg(short = 'o', long, help = "Output executable (legacy; prefer: rpythonc build -o OUT FILE)")]
+    #[arg(
+        short = 'o',
+        long,
+        help = "Output executable (legacy; prefer: rpythonc build -o OUT FILE)"
+    )]
     output: Option<PathBuf>,
 
     #[arg(long, value_enum, help = "Stop after a compiler stage")]
@@ -54,9 +62,7 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Command {
     /// Run a program in the mid-level IR interpreter (no native codegen)
-    Run {
-        file: PathBuf,
-    },
+    Run { file: PathBuf },
     /// Compile to a native executable (requires a system C compiler)
     Build {
         file: PathBuf,
@@ -68,17 +74,11 @@ enum Command {
         emit: Option<EmitStageArg>,
     },
     /// Run `#[test]` functions in a source file
-    Test {
-        file: PathBuf,
-    },
+    Test { file: PathBuf },
     /// Print documentation for a diagnostic error code
-    Explain {
-        code: String,
-    },
+    Explain { code: String },
     /// Emit lexer tokens only
-    Tokens {
-        file: PathBuf,
-    },
+    Tokens { file: PathBuf },
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -143,13 +143,7 @@ fn run() -> Result<()> {
             output,
             opt,
             emit,
-        }) => compile_file(
-            &file,
-            output,
-            opt,
-            emit,
-            false,
-        ),
+        }) => compile_file(&file, output, opt, emit, false),
         None => {
             let input = cli
                 .input
@@ -168,7 +162,7 @@ fn run() -> Result<()> {
     }
 }
 
-fn run_tests(path: &PathBuf) -> Result<()> {
+fn run_tests(path: &Path) -> Result<()> {
     let report = rpython_test_runner::run_tests(path)?;
     println!(
         "test result: {} passed; {} failed",
@@ -200,7 +194,7 @@ fn emit_tokens(path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn run_interpreted(path: &PathBuf) -> Result<()> {
+fn run_interpreted(path: &Path) -> Result<()> {
     rpython_driver::run_interpreted(path)
 }
 

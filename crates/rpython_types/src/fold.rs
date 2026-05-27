@@ -41,11 +41,19 @@ pub fn default_fold_ty<F: TypeFolder + ?Sized>(
             })
         }
         TyKind::Adt { def, subst } => {
-            let args: Vec<_> = subst.args.into_iter().map(|t| folder.fold_ty(db, t)).collect();
+            let args: Vec<_> = subst
+                .args
+                .into_iter()
+                .map(|t| folder.fold_ty(db, t))
+                .collect();
             db.adt(def, Subst::from_args(args))
         }
         TyKind::FnDef { def, subst } => {
-            let args: Vec<_> = subst.args.into_iter().map(|t| folder.fold_ty(db, t)).collect();
+            let args: Vec<_> = subst
+                .args
+                .into_iter()
+                .map(|t| folder.fold_ty(db, t))
+                .collect();
             db.fn_def(def, Subst::from_args(args))
         }
         other => db.intern(other),

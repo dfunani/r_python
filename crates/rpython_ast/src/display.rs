@@ -1,7 +1,7 @@
 use crate::{
-    expr::Mutability as ExprMutability, Abi, Arena, Attribute, BinaryOp, ElifArm, ExternItem,
-    ExprId, FieldDef, FieldExpr, GenericParam, ImplItem, ItemId, Kwarg, Literal, MatchArm, Param,
-    InterfaceItem, PatField, PatId, StmtId, TyId, UnaryOp, Variant, VariantFields,
+    expr::Mutability as ExprMutability, Abi, Arena, Attribute, BinaryOp, ElifArm, ExprId,
+    ExternItem, FieldDef, FieldExpr, GenericParam, ImplItem, InterfaceItem, ItemId, Kwarg, Literal,
+    MatchArm, Param, PatField, PatId, StmtId, TyId, UnaryOp, Variant, VariantFields,
 };
 use crate::{ExprKind, ItemKind, PatKind, StmtKind, TyKind};
 use crate::{Module, Path};
@@ -337,7 +337,11 @@ impl<'a> AstPrinter<'a> {
                     self.line("]");
                 }
             }
-            ExprKind::MethodCall { receiver, method, args } => {
+            ExprKind::MethodCall {
+                receiver,
+                method,
+                args,
+            } => {
                 self.kv("kind", "MethodCall");
                 self.print_expr("receiver", *receiver);
                 self.kv("method", method.as_str());
@@ -361,12 +365,12 @@ impl<'a> AstPrinter<'a> {
             }
             ExprKind::Unary { op, operand } => {
                 self.kv("kind", "Unary");
-                self.kv("op", &format_unary_op(*op));
+                self.kv("op", format_unary_op(*op));
                 self.print_expr("operand", *operand);
             }
             ExprKind::Binary { op, left, right } => {
                 self.kv("kind", "Binary");
-                self.kv("op", &format_binary_op(*op));
+                self.kv("op", format_binary_op(*op));
                 self.print_expr("left", *left);
                 self.print_expr("right", *right);
             }
@@ -398,7 +402,11 @@ impl<'a> AstPrinter<'a> {
                 self.unbump();
                 self.line("]");
             }
-            ExprKind::If { test, then, else_branch } => {
+            ExprKind::If {
+                test,
+                then,
+                else_branch,
+            } => {
                 self.kv("kind", "If");
                 self.print_expr("test", *test);
                 self.print_expr("then", *then);
@@ -426,7 +434,7 @@ impl<'a> AstPrinter<'a> {
             }
             ExprKind::Ref { mutability, expr } => {
                 self.kv("kind", "Ref");
-                self.kv("mut", &format_expr_mut(*mutability));
+                self.kv("mut", format_expr_mut(*mutability));
                 self.print_expr("expr", *expr);
             }
             ExprKind::Deref(expr) => {
@@ -451,7 +459,7 @@ impl<'a> AstPrinter<'a> {
             } => {
                 self.kv("kind", "Ident");
                 self.kv("name", name.as_str());
-                self.kv("mut", &format_pat_mut(*mutability));
+                self.kv("mut", format_pat_mut(*mutability));
                 if let Some(sub) = subpat {
                     self.print_pat(*sub);
                 }
@@ -554,7 +562,7 @@ impl<'a> AstPrinter<'a> {
             }
             TyKind::Ref { mutability, inner } => {
                 self.kv("kind", "Ref");
-                self.kv("mut", &format_ty_mut(*mutability));
+                self.kv("mut", format_ty_mut(*mutability));
                 self.print_ty_node(*inner);
             }
             TyKind::Fn { params, ret } => {
@@ -717,7 +725,9 @@ impl<'a> AstPrinter<'a> {
                 self.print_stmt_block("body", body);
                 self.unbump();
             }
-            ImplItem::Const { name, ty, value, .. } => {
+            ImplItem::Const {
+                name, ty, value, ..
+            } => {
                 self.line(&format!("const {}", name));
                 self.print_ty("ty", *ty);
                 self.print_expr("value", *value);

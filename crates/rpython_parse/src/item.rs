@@ -1,6 +1,6 @@
 use rpython_ast::{
-    Attribute, FieldDef, GenericParam, ImplItem, InterfaceItem, ItemKind, Param,
-    TyKind, Variant, VariantFields,
+    Attribute, FieldDef, GenericParam, ImplItem, InterfaceItem, ItemKind, Param, TyKind, Variant,
+    VariantFields,
 };
 use rpython_ast::{ItemId, Path, TyId, TyMutability};
 use rpython_syntax::TokenKind;
@@ -108,11 +108,7 @@ impl Parser<'_> {
         Some(params)
     }
 
-    fn parse_function_item(
-        &mut self,
-        is_pub: bool,
-        attrs: Vec<Attribute>,
-    ) -> Option<ItemKind> {
+    fn parse_function_item(&mut self, is_pub: bool, attrs: Vec<Attribute>) -> Option<ItemKind> {
         self.bump();
         let name = self.parse_ident_name()?;
         let generics = self.parse_generics()?;

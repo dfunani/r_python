@@ -1,7 +1,7 @@
 use crate::{
-    Arena, ElifArm, Expr, ExprId, ExprKind, ExternItem, FieldDef, FieldExpr, GenericParam, ImplItem,
-    Item, ItemId, ItemKind, Kwarg, MatchArm, Param, Pat, PatId, PatKind, PatField,
-    InterfaceItem, Stmt, StmtId, StmtKind, Ty, TyId, TyKind, Variant, VariantFields,
+    Arena, ElifArm, Expr, ExprId, ExprKind, ExternItem, FieldDef, FieldExpr, GenericParam,
+    ImplItem, InterfaceItem, Item, ItemId, ItemKind, Kwarg, MatchArm, Param, Pat, PatField, PatId,
+    PatKind, Stmt, StmtId, StmtKind, Ty, TyId, TyKind, Variant, VariantFields,
 };
 use crate::{Module, Path, PathSegment};
 
@@ -59,9 +59,7 @@ pub fn walk_item<V: Visitor + ?Sized>(v: &mut V, id: ItemId, arena: &Arena) {
                 walk_extern_item(v, item, arena);
             }
         }
-        ItemKind::Struct { .. }
-        | ItemKind::Enum { .. }
-        | ItemKind::Import { .. } => {}
+        ItemKind::Struct { .. } | ItemKind::Enum { .. } | ItemKind::Import { .. } => {}
     }
 }
 
@@ -222,7 +220,11 @@ pub fn walk_expr<V: Visitor + ?Sized>(v: &mut V, id: ExprId, arena: &Arena) {
                 walk_field_expr(v, field, arena);
             }
         }
-        ExprKind::If { test, then, else_branch } => {
+        ExprKind::If {
+            test,
+            then,
+            else_branch,
+        } => {
             walk_expr(v, *test, arena);
             walk_expr(v, *then, arena);
             walk_expr(v, *else_branch, arena);

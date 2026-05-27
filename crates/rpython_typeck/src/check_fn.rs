@@ -83,10 +83,7 @@ impl<'a> TypeCtxt<'a> {
     fn fn_sig_for_def(&mut self, def: DefId, _arena: &Arena) -> TypeId {
         let (params, ret) = self.function_sig_parts(def);
         self.db.intern(TyKind::FnPtr {
-            sig: rpython_types::FnSig {
-                params,
-                ret,
-            },
+            sig: rpython_types::FnSig { params, ret },
         })
     }
 
@@ -102,11 +99,7 @@ impl<'a> TypeCtxt<'a> {
             if let rpython_ast::ItemKind::Function { params, ret_ty, .. } = &item.kind {
                 let param_tys: Vec<_> = params
                     .iter()
-                    .map(|p| {
-                        p.ty
-                            .map(|t| self.ast_ty_to_type(t))
-                            .unwrap_or(self.wk.int)
-                    })
+                    .map(|p| p.ty.map(|t| self.ast_ty_to_type(t)).unwrap_or(self.wk.int))
                     .collect();
                 let ret = ret_ty
                     .map(|t| self.ast_ty_to_type(t))
@@ -116,12 +109,7 @@ impl<'a> TypeCtxt<'a> {
         }
         for &(item_id, _) in &self.resolution.item_def_ids {
             let item = self.arena.item(item_id);
-            if let rpython_ast::ItemKind::Impl {
-                self_ty,
-                items,
-                ..
-            } = &item.kind
-            {
+            if let rpython_ast::ItemKind::Impl { self_ty, items, .. } = &item.kind {
                 let self_type = self.ast_ty_to_type(*self_ty);
                 if let Some(impl_block) = self.find_impl_def_for_type(self_type) {
                     for impl_item in items {
@@ -132,14 +120,11 @@ impl<'a> TypeCtxt<'a> {
                             ..
                         } = impl_item
                         {
-                            if self.resolution.def_map.lookup(impl_block, name) == Some(def)
-                            {
+                            if self.resolution.def_map.lookup(impl_block, name) == Some(def) {
                                 let param_tys: Vec<_> = params
                                     .iter()
                                     .map(|p| {
-                                        p.ty
-                                            .map(|t| self.ast_ty_to_type(t))
-                                            .unwrap_or(self.wk.int)
+                                        p.ty.map(|t| self.ast_ty_to_type(t)).unwrap_or(self.wk.int)
                                     })
                                     .collect();
                                 let ret = ret_ty

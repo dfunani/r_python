@@ -16,7 +16,16 @@ Single-file `.rpy` programs compile and run via **`rpythonc run`** (MIR interpre
 - `if` / `elif` / `else`, `while`
 - Expression statements
 
-### Types
+### Types (static — not dynamic)
+
+rPython is **statically typed**. Types are checked at compile time. Example:
+
+```rpy
+a: str = "hello"   # ok
+a: int = "hello"   # compile error: expected `int`, found `str`
+```
+
+This is **not** CPython-style dynamic typing.
 
 | Type | Notes |
 |------|--------|
@@ -24,6 +33,8 @@ Single-file `.rpy` programs compile and run via **`rpythonc run`** (MIR interpre
 | `bool` | |
 | `str` | UTF-8 literals |
 | `()` | unit |
+
+**Annotated locals** inside functions: `name: Type = value` (v2.0).
 
 ### Expressions
 
@@ -58,6 +69,7 @@ Sources under `stdlib/` (`core/option.rpy`, `collections/vec.rpy`) are **not** y
 ### v2 examples (all run with `rpythonc run`)
 
 - `examples/hello.rpy`
+- `examples/static_typing.rpy`
 - `examples/gcd.rpy`
 - `examples/interfaces_demo.rpy`
 - `examples/classes_demo.rpy`

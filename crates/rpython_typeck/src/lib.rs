@@ -63,11 +63,7 @@ pub struct TypeCtxt<'a> {
 }
 
 impl<'a> TypeCtxt<'a> {
-    fn new(
-        resolution: &'a ResolvedCrate,
-        arena: &'a Arena,
-        handler: &'a mut Handler,
-    ) -> Self {
+    fn new(resolution: &'a ResolvedCrate, arena: &'a Arena, handler: &'a mut Handler) -> Self {
         let mut db = TypeDatabase::new();
         let wk = WellKnown::new(&mut db, &resolution.builtins);
         let unit = wk.unit;
@@ -96,16 +92,10 @@ impl<'a> TypeCtxt<'a> {
         let mut fn_params = FxHashMap::default();
         for &(item_id, def_id) in &self.resolution.item_def_ids {
             let item = self.arena.item(item_id);
-            if let rpython_ast::ItemKind::Function {
-                params, ret_ty, ..
-            } = &item.kind
-            {
+            if let rpython_ast::ItemKind::Function { params, ret_ty, .. } = &item.kind {
                 let mut param_tys = Vec::new();
                 for p in params {
-                    let ty = p
-                        .ty
-                        .map(|t| self.ast_ty_to_type(t))
-                        .unwrap_or(self.wk.int);
+                    let ty = p.ty.map(|t| self.ast_ty_to_type(t)).unwrap_or(self.wk.int);
                     param_tys.push(ty);
                 }
                 let ret = ret_ty
@@ -134,11 +124,7 @@ impl<'a> TypeCtxt<'a> {
 }
 
 /// Run type checking; returns `None` if errors were emitted.
-pub fn typeck(
-    module: &Module,
-    arena: &Arena,
-    handler: &mut Handler,
-) -> Option<TypedCrate> {
+pub fn typeck(module: &Module, arena: &Arena, handler: &mut Handler) -> Option<TypedCrate> {
     let resolved = resolve_for_typeck(module, arena, handler)?;
     let mut tcx = TypeCtxt::new(&resolved, arena, handler);
     tcx.collect_item_sigs(arena);

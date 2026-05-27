@@ -59,7 +59,21 @@ fn hello_interpret_and_native() {
     let output = Command::new(&bin).output().expect("run hello binary");
     assert!(output.status.success(), "hello binary failed");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("hello, rPython"), "expected greeting, got: {stdout}");
+    assert!(
+        stdout.contains("hello, rPython"),
+        "expected greeting, got: {stdout}"
+    );
+}
+
+#[test]
+fn static_typing_interpret() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/static_typing.rpy");
+    let stdout = run_interpret(&path);
+    assert!(
+        stdout.contains("hello"),
+        "expected str print, got: {stdout}"
+    );
+    assert!(stdout.contains("42"), "expected int print, got: {stdout}");
 }
 
 #[test]
@@ -73,7 +87,10 @@ fn gcd_interpret() {
 fn interfaces_demo_interpret() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/interfaces_demo.rpy");
     let stdout = run_interpret(&path);
-    assert!(!stdout.trim().is_empty(), "interfaces_demo should produce output");
+    assert!(
+        !stdout.trim().is_empty(),
+        "interfaces_demo should produce output"
+    );
 }
 
 #[test]

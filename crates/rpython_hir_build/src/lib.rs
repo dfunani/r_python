@@ -5,17 +5,17 @@ use rpython_ast::{
     UnaryOp as AstUnaryOp,
 };
 use rpython_hir::{
-    BinaryOp, HirBody, HirConst, HirCrate, HirExpr, HirExprId, HirExprKind, HirOwner,
-    HirOwnerKind, HirPat, HirPatId, HirPatKind, HirStmt, HirStmtId, HirStmtKind, LocalDecl,
-    Operand, Place, Rvalue, UnaryOp,
+    BinaryOp, HirBody, HirConst, HirCrate, HirExpr, HirExprId, HirExprKind, HirOwner, HirOwnerKind,
+    HirPat, HirPatId, HirPatKind, HirStmt, HirStmtId, HirStmtKind, LocalDecl, Operand, Place,
+    Rvalue, UnaryOp,
 };
-use rpython_resolve::DefKind;
-use rpython_types::TyKind;
 use rpython_ids::{DefId, LocalId};
 use rpython_resolve::resolve_path;
-use rpython_typeck::TypedCrate;
-use rpython_types::{Mutability, Subst};
+use rpython_resolve::DefKind;
 use rpython_span::Span;
+use rpython_typeck::TypedCrate;
+use rpython_types::TyKind;
+use rpython_types::{Mutability, Subst};
 use smol_str::SmolStr;
 
 struct HirBuilder {
@@ -61,7 +61,12 @@ impl HirBuilder {
         self.local_names.get(name).copied()
     }
 
-    fn alloc_expr(&mut self, kind: HirExprKind, ty: rpython_types::TypeId, span: Span) -> HirExprId {
+    fn alloc_expr(
+        &mut self,
+        kind: HirExprKind,
+        ty: rpython_types::TypeId,
+        span: Span,
+    ) -> HirExprId {
         let id = HirExprId::from_usize(self.exprs.len());
         self.exprs.push(HirExpr { kind, ty, span });
         id
@@ -98,7 +103,15 @@ pub fn build_hir(typed: &TypedCrate, module: &Module, arena: &Arena) -> HirCrate
         {
             if lowered.insert(def_id) {
                 build_one_function(
-                    &mut hir_crate, typed, arena, def_id, name, params, *ret_ty, body, unit,
+                    &mut hir_crate,
+                    typed,
+                    arena,
+                    def_id,
+                    name,
+                    params,
+                    *ret_ty,
+                    body,
+                    unit,
                 );
             }
         }
@@ -144,7 +157,9 @@ pub fn build_hir(typed: &TypedCrate, module: &Module, arena: &Arena) -> HirCrate
                     .def_map
                     .iter()
                     .find_map(|(def, kind)| match kind {
-                        DefKind::Impl { self_ty_name, .. } if self_ty_name.as_str() == self_name => {
+                        DefKind::Impl { self_ty_name, .. }
+                            if self_ty_name.as_str() == self_name =>
+                        {
                             Some(def)
                         }
                         _ => None,
@@ -185,6 +200,7 @@ pub fn build_hir(typed: &TypedCrate, module: &Module, arena: &Arena) -> HirCrate
     hir_crate
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_one_function(
     hir_crate: &mut HirCrate,
     typed: &TypedCrate,
@@ -272,16 +288,24 @@ fn lower_stmt(
         }
         StmtKind::Assign { targets, value } => {
             if let Some(&pat_id) = targets.first() {
-                let val_ty = typed.expr_types.get(&value).copied().unwrap_or(unit);
+                let val_ty = typed.expr_types.get(value).copied().unwrap_or(unit);
                 let place = lower_pat_assign(b, typed, arena, pat_id, val_ty, stmt.span);
                 let rvalue = lower_expr_to_rvalue(b, typed, arena, *value);
-                return b.alloc_stmt(
-                    HirStmtKind::Assign { place, rvalue },
-                    stmt.span,
-                );
+                return b.alloc_stmt(HirStmtKind::Assign { place, rvalue }, stmt.span);
             }
             let val = lower_expr(b, typed, arena, *value);
             b.alloc_stmt(HirStmtKind::Expr(val), stmt.span)
+        }
+        StmtKind::AnnAssign { target, value, .. } => {
+            if let Some(v) = value {
+                let val_ty = typed.expr_types.get(v).copied().unwrap_or(unit);
+                let place = lower_pat_assign(b, typed, arena, *target, val_ty, stmt.span);
+                let rvalue = lower_expr_to_rvalue(b, typed, arena, *v);
+                return b.alloc_stmt(HirStmtKind::Assign { place, rvalue }, stmt.span);
+            }
+            let pat_ty = typed.pat_types.get(target).copied().unwrap_or(unit);
+            lower_pat_assign(b, typed, arena, *target, pat_ty, stmt.span);
+            b.alloc_stmt(HirStmtKind::Expr(HirExprId::from_usize(0)), stmt.span)
         }
         StmtKind::Return(opt) => {
             let e = opt.map(|ex| lower_expr(b, typed, arena, ex));
@@ -359,7 +383,7 @@ fn lower_stmt(
 
 fn lower_pat_assign(
     b: &mut HirBuilder,
-    typed: &TypedCrate,
+    _typed: &TypedCrate,
     arena: &Arena,
     pat_id: rpython_ids::PatId,
     ty: rpython_types::TypeId,
@@ -367,7 +391,9 @@ fn lower_pat_assign(
 ) -> Place {
     let pat = arena.pat(pat_id);
     match &pat.kind {
-        PatKind::Ident { name, mutability, .. } => {
+        PatKind::Ident {
+            name, mutability, ..
+        } => {
             let mutability = match mutability {
                 rpython_ast::PatMutability::Imm => Mutability::Imm,
                 rpython_ast::PatMutability::Mut => Mutability::Mut,
@@ -392,9 +418,7 @@ fn lower_pat(
     let unit = typed.unit;
     match &pat.kind {
         PatKind::Wild => b.alloc_pat(HirPatKind::Wild, pat.span),
-        PatKind::Literal(lit) => {
-            b.alloc_pat(HirPatKind::Literal(ast_literal(lit)), pat.span)
-        }
+        PatKind::Literal(lit) => b.alloc_pat(HirPatKind::Literal(ast_literal(lit)), pat.span),
         PatKind::Ident { name, .. } => {
             let local = b
                 .lookup_local(name.as_str())
@@ -407,7 +431,9 @@ fn lower_pat(
                 pat.span,
             )
         }
-        PatKind::Enum { path, variant, .. } => {
+        PatKind::Enum {
+            path, variant: _, ..
+        } => {
             let def = resolve_path(path, &typed.resolved).unwrap_or(DefId::from_usize(0));
             b.alloc_pat(
                 HirPatKind::Enum {
@@ -441,7 +467,10 @@ fn lower_expr(
                     subst: Subst::default(),
                 }
             } else if let Some(name) = path.is_simple_ident() {
-                HirExprKind::Local(b.lookup_local(name.as_str()).unwrap_or(LocalId::from_usize(0)))
+                HirExprKind::Local(
+                    b.lookup_local(name.as_str())
+                        .unwrap_or(LocalId::from_usize(0)),
+                )
             } else {
                 HirExprKind::Literal(HirConst::Unit)
             }
@@ -583,10 +612,7 @@ fn lower_binop(op: AstBinOp) -> BinaryOp {
 fn field_index_for_type(typed: &TypedCrate, ty: rpython_types::TypeId, field: &str) -> u32 {
     if let TyKind::Adt { def, .. } = typed.interner().kind(ty) {
         if let Some(DefKind::Struct { fields, .. }) = typed.resolved.def_map.get(*def) {
-            return fields
-                .iter()
-                .position(|f| f.as_str() == field)
-                .unwrap_or(0) as u32;
+            return fields.iter().position(|f| f.as_str() == field).unwrap_or(0) as u32;
         }
     }
     0

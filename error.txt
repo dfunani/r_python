@@ -1,0 +1,152 @@
+Skip to content
+dfunani
+r_python
+Repository navigation
+Code
+Issues
+Pull requests
+Agents
+Actions
+Projects
+Wiki
+Security and quality
+Insights
+Settings
+CI
+ 
+CI #7
+All jobs
+Run details
+Annotations
+1 error and 1 warning
+build (ubuntu-latest)
+failed 4 minutes ago in 10s
+
+1s
+1s
+2s
+2s
+1s
+Run cargo fmt --all -- --check
+Diff in /home/runner/work/r_python/r_python/crates/rpython_ast/src/display.rs:1:
+ use crate::{
+-    expr::Mutability as ExprMutability, Abi, Arena, Attribute, BinaryOp, ElifArm, ExternItem,
+-    ExprId, FieldDef, FieldExpr, GenericParam, ImplItem, ItemId, Kwarg, Literal, MatchArm, Param,
+-    InterfaceItem, PatField, PatId, StmtId, TyId, UnaryOp, Variant, VariantFields,
++    expr::Mutability as ExprMutability, Abi, Arena, Attribute, BinaryOp, ElifArm, ExprId,
++    ExternItem, FieldDef, FieldExpr, GenericParam, ImplItem, InterfaceItem, ItemId, Kwarg, Literal,
++    MatchArm, Param, PatField, PatId, StmtId, TyId, UnaryOp, Variant, VariantFields,
+ };
+ use crate::{ExprKind, ItemKind, PatKind, StmtKind, TyKind};
+ use crate::{Module, Path};
+Diff in /home/runner/work/r_python/r_python/crates/rpython_ast/src/display.rs:337:
+                     self.line("]");
+                 }
+             }
+-            ExprKind::MethodCall { receiver, method, args } => {
++            ExprKind::MethodCall {
++                receiver,
++                method,
++                args,
++            } => {
+                 self.kv("kind", "MethodCall");
+                 self.print_expr("receiver", *receiver);
+                 self.kv("method", method.as_str());
+Diff in /home/runner/work/r_python/r_python/crates/rpython_ast/src/display.rs:398:
+                 self.unbump();
+                 self.line("]");
+             }
+-            ExprKind::If { test, then, else_branch } => {
++            ExprKind::If {
++                test,
++                then,
++                else_branch,
++            } => {
+                 self.kv("kind", "If");
+                 self.print_expr("test", *test);
+                 self.print_expr("then", *then);
+Diff in /home/runner/work/r_python/r_python/crates/rpython_ast/src/display.rs:717:
+                 self.print_stmt_block("body", body);
+                 self.unbump();
+             }
++            let args: Vec<_> = subst
++                .args
++                .into_iter()
++                .map(|t| folder.fold_ty(db, t))
++                .collect();
+             db.adt(def, Subst::from_args(args))
+         }
+         TyKind::FnDef { def, subst } => {
+Diff in /home/runner/work/r_python/r_python/crates/rpython_types/src/fold.rs:48:
+-            let args: Vec<_> = subst.args.into_iter().map(|t| folder.fold_ty(db, t)).collect();
++            let args: Vec<_> = subst
++                .args
++                .into_iter()
++                .map(|t| folder.fold_ty(db, t))
++                .collect();
+             db.fn_def(def, Subst::from_args(args))
+         }
+         other => db.intern(other),
+Diff in /home/runner/work/r_python/r_python/crates/rpython_types/src/lib.rs:10:
+ pub use fold::{default_fold_ty, TypeFolder};
+ pub use infer::InferVar;
+ pub use layout::{layout_of, Align, Layout, Size};
++pub use rpython_ids::TypeId;
+ pub use subst::Subst;
+ pub use trait_ref::TraitRef;
+-pub use rpython_ids::TypeId;
+ pub use ty::{FloatWidth, FnSig, IntWidth, Mutability, RegionId, TyKind, TypeDatabase};
+ 
+Diff in /home/runner/work/r_python/r_python/crates/rpython_types/src/ty.rs:240:
+                 })
+             }
+             TyKind::Adt { def, subst: s } => {
+-                let new_args: Vec<_> = s
+-                    .args
+-                    .iter()
+-                    .map(|&t| self.substitute(t, subst))
+-                    .collect();
++                let new_args: Vec<_> = s.args.iter().map(|&t| self.substitute(t, subst)).collect();
+                 self.adt(def, Subst::from_args(new_args))
+             }
+             TyKind::FnDef { def, subst: s } => {
+Diff in /home/runner/work/r_python/r_python/crates/rpython_types/src/ty.rs:251:
+-                let new_args: Vec<_> = s
+-                    .args
+-                    .iter()
+-                    .map(|&t| self.substitute(t, subst))
+-                    .collect();
++                let new_args: Vec<_> = s.args.iter().map(|&t| self.substitute(t, subst)).collect();
+                 self.fn_def(def, Subst::from_args(new_args))
+             }
+             TyKind::FnPtr { sig } => {
+Diff in /home/runner/work/r_python/r_python/tests/programs_e2e.rs:59:
+     let output = Command::new(&bin).output().expect("run hello binary");
+     assert!(output.status.success(), "hello binary failed");
+     let stdout = String::from_utf8_lossy(&output.stdout);
+-    assert!(stdout.contains("hello, rPython"), "expected greeting, got: {stdout}");
++    assert!(
++        stdout.contains("hello, rPython"),
++        "expected greeting, got: {stdout}"
++    );
+ }
+ 
+ #[test]
+Diff in /home/runner/work/r_python/r_python/tests/programs_e2e.rs:73:
+ fn interfaces_demo_interpret() {
+     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/interfaces_demo.rpy");
+     let stdout = run_interpret(&path);
+-    assert!(!stdout.trim().is_empty(), "interfaces_demo should produce output");
++    assert!(
++        !stdout.trim().is_empty(),
++        "interfaces_demo should produce output"
++    );
+ }
+ 
+ #[test]
+Error: Process completed with exit code 1.
+0s
+0s
+0s
+0s
+0s

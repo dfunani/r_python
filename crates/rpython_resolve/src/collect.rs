@@ -53,8 +53,7 @@ impl<'a> Collector<'a> {
                 is_pub: _,
                 attrs: _,
             } => {
-                let field_names: Vec<SmolStr> =
-                    fields.iter().map(|f| f.name.clone()).collect();
+                let field_names: Vec<SmolStr> = fields.iter().map(|f| f.name.clone()).collect();
                 let def = self.def_map.alloc(DefKind::Struct {
                     name: name.clone(),
                     fields: field_names,
@@ -71,8 +70,7 @@ impl<'a> Collector<'a> {
                 is_pub: _,
                 attrs: _,
             } => {
-                let variant_names: Vec<SmolStr> =
-                    variants.iter().map(|v| v.name.clone()).collect();
+                let variant_names: Vec<SmolStr> = variants.iter().map(|v| v.name.clone()).collect();
                 let def = self.def_map.alloc(DefKind::Enum {
                     name: name.clone(),
                     variants: variant_names,
@@ -87,14 +85,13 @@ impl<'a> Collector<'a> {
                         name: variant.name.clone(),
                         index: idx as u32,
                     });
-                    self.def_map
-                        .insert_name(def, variant.name.clone(), vdef);
+                    self.def_map.insert_name(def, variant.name.clone(), vdef);
                 }
             }
             ItemKind::Interface { name, .. } => {
-                let def = self.def_map.alloc(DefKind::Interface {
-                    name: name.clone(),
-                });
+                let def = self
+                    .def_map
+                    .alloc(DefKind::Interface { name: name.clone() });
                 if self.define_name(name.clone(), def, item.span) {
                     return;
                 }
@@ -124,7 +121,12 @@ impl<'a> Collector<'a> {
                 self.ribs.pop();
                 let _ = interface_name;
             }
-            ItemKind::Const { name, ty: _, value: _, is_pub: _ } => {
+            ItemKind::Const {
+                name,
+                ty: _,
+                value: _,
+                is_pub: _,
+            } => {
                 let def = self.def_map.alloc(DefKind::Const {
                     name: name.clone(),
                     ty_span: item.span,
@@ -171,9 +173,9 @@ impl<'a> Collector<'a> {
                 self.parent = old_parent;
             }
             ItemKind::Module { name, items } => {
-                let def = self.def_map.alloc(DefKind::Module(
-                    rpython_ids::ModuleId(self.def_map.root_module().0),
-                ));
+                let def = self.def_map.alloc(DefKind::Module(rpython_ids::ModuleId(
+                    self.def_map.root_module().0,
+                )));
                 if self.define_name(name.clone(), def, item.span) {
                     return;
                 }
@@ -223,9 +225,9 @@ impl<'a> Collector<'a> {
                 let _ = self.define_name(name.clone(), def, item.span());
             }
             ImplItem::Type { name, .. } => {
-                let def = self.def_map.alloc(DefKind::TypeAlias {
-                    name: name.clone(),
-                });
+                let def = self
+                    .def_map
+                    .alloc(DefKind::TypeAlias { name: name.clone() });
                 let _ = self.define_name(name.clone(), def, item.span());
             }
         }
@@ -238,7 +240,8 @@ impl<'a> Collector<'a> {
         params: &[rpython_ast::Param],
         _arena: &Arena,
     ) {
-        self.ribs.push(ScopeKind::Function, owner, Some(self.parent));
+        self.ribs
+            .push(ScopeKind::Function, owner, Some(self.parent));
         for (idx, gp) in generics.iter().enumerate() {
             let def = self.def_map.alloc(DefKind::TypeAlias {
                 name: gp.name.clone(),
@@ -252,8 +255,7 @@ impl<'a> Collector<'a> {
                 index: idx as u32,
                 name: param.name.clone(),
             });
-            self.def_map
-                .insert_name(owner, param.name.clone(), def);
+            self.def_map.insert_name(owner, param.name.clone(), def);
             let _ = self.ribs.define(param.name.clone(), def);
         }
         self.ribs.pop();

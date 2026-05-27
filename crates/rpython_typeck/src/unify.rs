@@ -102,10 +102,7 @@ impl InferCtxt {
                 }
             }
             TyKind::Tuple(elems) => {
-                let mapped: Vec<_> = elems
-                    .into_iter()
-                    .map(|t| self.apply_to_db(db, t))
-                    .collect();
+                let mapped: Vec<_> = elems.into_iter().map(|t| self.apply_to_db(db, t)).collect();
                 db.tuple(mapped)
             }
             other => db.intern(other),
@@ -127,10 +124,7 @@ pub fn type_name(db: &mut TypeDatabase, ty: TypeId, infer: &InferCtxt) -> String
         TyKind::Unit => "void".into(),
         TyKind::Never => "!".into(),
         TyKind::Tuple(elems) => {
-            let inner: Vec<_> = elems
-                .iter()
-                .map(|t| type_name(db, *t, infer))
-                .collect();
+            let inner: Vec<_> = elems.iter().map(|t| type_name(db, *t, infer)).collect();
             format!("({})", inner.join(", "))
         }
         TyKind::Adt { def, .. } => format!("Adt({})", def.0),

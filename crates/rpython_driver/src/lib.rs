@@ -2,15 +2,12 @@ mod link;
 mod pipeline;
 mod session;
 
-pub use session::{
-    CompilationStage, CompileOptions, CompilerSession, EmitStage, OptLevel,
-};
+pub use session::{CompilationStage, CompileOptions, CompilerSession, EmitStage, OptLevel};
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use rpython_ast::Arena;
 use rpython_codegen_llvm::compile_crate_to_c;
 use rpython_errors::{Handler, HumanEmitter};
 use rpython_span::SourceMap;
