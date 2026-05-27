@@ -10,6 +10,7 @@ rpython_ast = { workspace = true }
 rpython_borrowck = { workspace = true }
 rpython_codegen_llvm = { workspace = true }
 rpython_errors = { workspace = true }
+rpython_hir = { workspace = true }
 rpython_mir = { workspace = true }
 rpython_hir_build = { workspace = true }
 rpython_mir_build = { workspace = true }

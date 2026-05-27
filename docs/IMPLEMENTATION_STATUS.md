@@ -16,7 +16,7 @@ Use this file to plan work, review PRs, and avoid assuming a feature works becau
 | Front-end | P2–P4 | **Partial** (parse/typeck exist; fixture suites thin) |
 | Middle-end | P5–P6 | **Partial** (HIR/MIR/interpreter + **C** backend, not LLVM) |
 | Language features | P7–P11 | **Stub / partial** (AST/parser ahead of codegen & tests) |
-| Tooling | P12 | **Not started** (basic CI only) |
+| Tooling | P12 | **Partial** (CI, GitHub Releases, install script) |
 
 **End-to-end today:** single-file `.rpy` → lex → parse → resolve → typecheck → HIR → MIR → borrowck (no-op) → C codegen → link → native binary or MIR `--run`.
 
@@ -51,7 +51,7 @@ Use this file to plan work, review PRs, and avoid assuming a feature works becau
 | **P9** | Borrowck + drops | **stub** | Move/`&mut` errors | `borrowck_crate` is identity |
 | **P10** | Stdlib + test runner (M7) | **stub** | `rpython test`; stdlib tests | `rpython_test_runner` library only; no `stdlib/` |
 | **P11** | Surface completion | **partial** | `LANGUAGE.md` matches compiler; `tests/ui/` | Parser knows many keywords; few UI tests |
-| **P12** | Tooling hardening | **not started** | macOS CI; release workflow; cache, `-g`, benches | Linux CI: fmt/clippy/test only |
+| **P12** | Tooling hardening | **partial** | macOS CI; release workflow; installable binaries | Release tarballs + `scripts/install.sh`; no incremental cache / DWARF yet |
 
 ---
 

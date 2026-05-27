@@ -11,13 +11,10 @@ use anyhow::{Context, Result};
 use rpython_ast::Arena;
 use rpython_codegen_llvm::compile_crate_to_c;
 use rpython_errors::{Handler, HumanEmitter};
-use rpython_mir::interp::interpret_crate;
-use rpython_resolve::resolve_crate;
 use rpython_span::SourceMap;
 use rpython_syntax::{tokenize, SpannedToken, TokenKind};
-use rpython_typeck::typecheck;
 
-use pipeline::{emit_ast, emit_mir, run_pipeline, CompiledUnit};
+use pipeline::{emit_ast, emit_hir, emit_mir, run_pipeline};
 
 /// Compile a source file through the full pipeline.
 pub fn compile(session: &mut CompilerSession) -> Result<()> {
@@ -39,8 +36,15 @@ pub fn compile(session: &mut CompilerSession) -> Result<()> {
             println!("{}", emit_mir(&unit));
             Ok(())
         }
-        EmitStage::Hir | EmitStage::Llvm => {
-            anyhow::bail!("emit stage {:?} not implemented yet", session.options.emit);
+        EmitStage::Hir => {
+            let unit = run_pipeline(session)?;
+            println!("{}", emit_hir(&unit));
+            Ok(())
+        }
+        EmitStage::Llvm => {
+            anyhow::bail!(
+                "emit llvm not implemented; native builds use the C backend (use -o)"
+            );
         }
         EmitStage::Executable => {
             let unit = run_pipeline(session)?;
@@ -53,12 +57,12 @@ pub fn compile(session: &mut CompilerSession) -> Result<()> {
                 .clone()
                 .unwrap_or_else(|| default_output_path(&session.input_path));
             let mir = unit.mir.as_ref().context("MIR not produced")?;
-            let mut handler = Handler::new();
-            let resolution = resolve_crate(&unit.module, &unit.arena, &mut handler)
-                .context("name resolution failed")?;
-            let typed = typecheck(&resolution, &unit.module, &unit.arena, &mut handler)
-                .context("typecheck failed")?;
-            let c_out = compile_crate_to_c(mir, &typed, &resolution);
+            let resolution = unit
+                .resolution
+                .as_ref()
+                .context("resolution not produced")?;
+            let typed = unit.typed.as_ref().context("typecheck not produced")?;
+            let c_out = compile_crate_to_c(mir, typed, resolution);
             link::link_executable(&c_out, &output, session.options.opt_level)?;
             Ok(())
         }
@@ -75,7 +79,7 @@ pub fn compile_to_executable(
         fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
     let mut source_map = SourceMap::new();
     let file_id = source_map.load_file(path, contents.clone());
-    let mut handler = Handler::new();
+    let handler = Handler::new();
     let mut session = CompilerSession::new(
         source_map,
         file_id,
@@ -91,12 +95,13 @@ pub fn compile_to_executable(
         .as_ref()
         .context("MIR not produced")?;
 
-    let resolution = resolve_crate(&unit.module, &unit.arena, &mut session.handler)
-        .context("name resolution failed")?;
-    let typed = typecheck(&resolution, &unit.module, &unit.arena, &mut session.handler)
-        .context("typecheck failed")?;
+    let resolution = unit
+        .resolution
+        .as_ref()
+        .context("resolution not produced")?;
+    let typed = unit.typed.as_ref().context("typecheck not produced")?;
 
-    let c_out = compile_crate_to_c(mir, &typed, &resolution);
+    let c_out = compile_crate_to_c(mir, typed, resolution);
     link::link_executable(&c_out, output, options.opt_level)?;
     Ok(output.to_path_buf())
 }

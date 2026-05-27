@@ -2,30 +2,47 @@
 
 **rPython** is a memory-safe, statically typed language with Python-shaped syntax, compiled to native code via a Rust toolchain (not CPython).
 
-## Try it
+## Install
 
-Requires Rust **1.78+**. Native binaries use a **C backend** today (LLVM is planned per the full spec).
+**Prebuilt binaries** (no Rust required): see [INSTALL.md](INSTALL.md) or [GitHub Releases](https://github.com/dfunani/r_python/releases).
 
 ```bash
-cargo build -p rpython_cli
+curl -fsSL https://raw.githubusercontent.com/dfunani/r_python/main/scripts/install.sh | bash
+```
 
-# Lex / AST / MIR
-cargo run -p rpython_cli -- --emit tokens examples/hello.rpy
-cargo run -p rpython_cli -- --emit ast examples/hello.rpy
+You also need a C compiler (`cc`) on your PATH to use `rpythonc -o` (Xcode CLT on macOS, `build-essential` on Linux).
 
-# Interpret or compile
-cargo run -p rpython_cli -- --run examples/hello.rpy
-cargo run -p rpython_cli -- -o ./hello examples/hello.rpy && ./hello
+**From source** (Rust 1.78+):
+
+```bash
+cargo build -p rpython_cli --release
+export PATH="$PWD/target/release:$PATH"
+```
+
+## Try it
+
+```bash
+# Interpret (fastest — no linker)
+rpythonc --run examples/hello.rpy
+
+# Native executable
+rpythonc -o ./hello examples/hello.rpy
+./hello
+
+# Inspect the compiler
+rpythonc --emit tokens examples/hello.rpy
+rpythonc --emit ast examples/hello.rpy
+rpythonc --emit mir examples/hello.rpy
 ```
 
 ## Documentation
 
+- [Install guide](INSTALL.md)
 - [Design specification](docs/DESIGN_SPEC.md)
-- [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
-- [Full implementation spec](docs/IMPLEMENTATION.md)
-- [**P0–P12 implementation status**](docs/IMPLEMENTATION_STATUS.md)
 - [Language reference (implemented subset)](docs/LANGUAGE.md)
-- [How we build a programming language](docs/HOW_THE_FUDGE_WE_BUILD_A_PROGRAMMING_LANGUAGE.md)
+- [**P0–P12 implementation status**](docs/IMPLEMENTATION_STATUS.md)
+- [Full implementation spec](docs/IMPLEMENTATION.md)
+- [Official website](https://github.com/dfunani/r_python_web) (docs & playground)
 
 ## Naming note
 
@@ -33,4 +50,4 @@ PyPy’s **RPython** is a restricted Python subset for bootstrapping PyPy. **Thi
 
 ## License
 
-MIT OR Apache-2.0 — see LICENSE.
+MIT OR Apache-2.0 — see [LICENSE](LICENSE).

@@ -1,12 +1,14 @@
 use rpython_ast::{format_module, Arena, Module};
 use rpython_borrowck::borrowck_crate;
 use rpython_errors::Handler;
+use rpython_hir::HirCrate;
 use rpython_hir_build::build_hir;
 use rpython_mir::{format_mir_crate, interp::interpret_crate, MirCrate};
 use rpython_mir_build::build_mir;
 use rpython_parse::parse_module;
-use rpython_resolve::resolve_crate;
-use rpython_syntax::{tokenize, TokenStream};
+use rpython_resolve::{Resolution, resolve_crate};
+use rpython_typeck::TypedCrate;
+use rpython_syntax::tokenize;
 use rpython_typeck::typecheck;
 
 use crate::session::CompilerSession;
@@ -14,6 +16,9 @@ use crate::session::CompilerSession;
 pub struct CompiledUnit {
     pub module: Module,
     pub arena: Arena,
+    pub resolution: Option<Resolution>,
+    pub typed: Option<TypedCrate>,
+    pub hir: Option<HirCrate>,
     pub mir: Option<MirCrate>,
     pub tokens: Option<String>,
 }
@@ -36,6 +41,9 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
                 span: rpython_span::Span::dummy(),
             },
             arena: Arena::new(),
+            resolution: None,
+            typed: None,
+            hir: None,
             mir: None,
             tokens: Some(token_text),
         });
@@ -53,6 +61,9 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
         return Ok(CompiledUnit {
             module,
             arena,
+            resolution: None,
+            typed: None,
+            hir: None,
             mir: None,
             tokens: None,
         });
@@ -75,6 +86,19 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
     let hir = build_hir(&typed, &module, &arena);
     let mir = borrowck_crate(build_mir(&hir));
 
+    if session.options.emit == crate::EmitStage::Hir {
+        session.handler = handler;
+        return Ok(CompiledUnit {
+            module,
+            arena,
+            resolution: Some(resolution),
+            typed: Some(typed),
+            hir: Some(hir),
+            mir: None,
+            tokens: None,
+        });
+    }
+
     if session.options.run_interp {
         interpret_crate(&mir).map_err(|e| anyhow::anyhow!("{e}"))?;
     }
@@ -83,6 +107,9 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
     Ok(CompiledUnit {
         module,
         arena,
+        resolution: Some(resolution),
+        typed: Some(typed),
+        hir: Some(hir),
         mir: Some(mir),
         tokens: None,
     })
@@ -126,5 +153,12 @@ pub fn emit_mir(unit: &CompiledUnit) -> String {
         .mir
         .as_ref()
         .map(format_mir_crate)
+        .unwrap_or_default()
+}
+
+pub fn emit_hir(unit: &CompiledUnit) -> String {
+    unit.hir
+        .as_ref()
+        .map(|h| format!("{h:#?}"))
         .unwrap_or_default()
 }

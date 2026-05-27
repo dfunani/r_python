@@ -10,10 +10,20 @@ use rpython_span::SourceMap;
 use rpython_syntax::tokenize;
 
 #[derive(Parser, Debug)]
-#[command(name = "rpythonc", version, about = "rPython compiler driver")]
+#[command(
+    name = "rpythonc",
+    version,
+    about = "rPython compiler — compile and run .rpy programs",
+    long_about = "rPython compiler driver. Install from https://github.com/dfunani/r_python/releases\n\
+                  or build with: cargo build -p rpython_cli --release"
+)]
 struct Args {
-    /// Input `.rpy` source file
+    /// Input `.rpy` source file (or test file when --test)
     input: PathBuf,
+
+    /// Discover and run `#[test]` functions via the MIR interpreter
+    #[arg(long)]
+    test: bool,
 
     /// Output executable path
     #[arg(short = 'o')]
@@ -80,6 +90,21 @@ fn run() -> Result<()> {
         3 => OptLevel::O3,
         n => bail!("unsupported optimization level {n} (use 0-3)"),
     };
+
+    if args.test {
+        let report = rpython_test_runner::run_tests(&args.input)?;
+        println!(
+            "test result: {} passed; {} failed",
+            report.passed, report.failed
+        );
+        for f in &report.failures {
+            eprintln!("FAILED {} — {}", f.name, f.message);
+        }
+        if report.failed > 0 {
+            bail!("{} test(s) failed", report.failed);
+        }
+        return Ok(());
+    }
 
     let contents = fs::read_to_string(&args.input)
         .with_context(|| format!("failed to read {}", args.input.display()))?;
