@@ -1,21 +1,19 @@
-# rPython standard library (P10)
+# rPython standard library (v2 scaffold)
 
-**Status:** Not implemented. This directory is reserved per [IMPLEMENTATION.md](../docs/IMPLEMENTATION.md) §15.
+Source libraries for the rPython language. The compiler **v2.0** ships these as reference sources; automatic prelude loading is planned for P10.
 
-## Planned layout
+## Layout
 
-```text
-stdlib/
-├── core/           # Option, Result, panic hooks
-├── collections/    # Vec, HashMap (later)
-├── io/             # File, stdin/stdout abstractions
-└── prelude.rpy     # names imported implicitly (design TBD)
-```
+| Path | Purpose |
+|------|---------|
+| `core/prelude.rpy` | Implicit imports (documented) |
+| `core/option.rpy` | `Option[T]` enum |
+| `collections/vec.rpy` | `Vec[T]` growable buffer (runtime-backed later) |
 
-## Current builtins
+## Builtins (compiler)
 
-The compiler embeds a minimal builtin set in `rpython_resolve` (e.g. `print`). Until stdlib sources compile, builtins live in Rust.
+Provided by `rpython_resolve` today: `print`, type names `int`, `bool`, `str`, `void`.
 
-## Tracking
+## Running tests
 
-See [docs/IMPLEMENTATION_STATUS.md](../docs/IMPLEMENTATION_STATUS.md) — phase **P10**.
+When `rpythonc test` is wired to load `stdlib/`, programs will `import` from here. Until then, copy snippets into your `.rpy` file or use builtins only.

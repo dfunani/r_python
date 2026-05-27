@@ -2,7 +2,7 @@ use crate::traits::MonoInstance;
 use crate::TypeCtxt;
 use rpython_ast::{
     Arena, BinaryOp, ExprId, ExprKind, FieldExpr, ImplItem, ItemId, ItemKind, Literal, Path,
-    StmtId, StmtKind, TyKind as AstTyKind, UnaryOp,
+    PatKind, StmtId, StmtKind, TyKind as AstTyKind, UnaryOp,
 };
 use rpython_errors::{Diagnostic, ErrorCode};
 use rpython_ids::{DefId, TypeId};
@@ -39,17 +39,23 @@ impl<'a> TypeCtxt<'a> {
             ItemKind::Impl {
                 self_ty,
                 items,
-                interface_ref: _,
+                interface_ref,
                 ..
             } => {
                 let self_type = self.ast_ty_to_type(*self_ty);
                 let mut methods = indexmap::IndexMap::new();
                 let impl_def = self.find_impl_def_for_type(self_type);
+                let interface_def = interface_ref
+                    .as_ref()
+                    .and_then(|p| self.resolution.def_map.lookup(self.root, p.segments.last()?.ident.as_str()));
                 for impl_item in items {
                     if let ImplItem::Function { name, params, ret_ty, body, span, .. } =
                         impl_item
                     {
-                        if let Some(def) = impl_def.and_then(|d| self.resolution.def_map.lookup(d, name)) {
+                        let method_def = impl_def
+                            .and_then(|d| self.resolution.def_map.lookup(d, name))
+                            .or_else(|| self.find_impl_method_def(self_type, name));
+                        if let Some(def) = method_def {
                             methods.insert(name.clone(), def);
                             self.check_function(def, params, *ret_ty, body);
                         }
@@ -61,7 +67,7 @@ impl<'a> TypeCtxt<'a> {
                         impl_id: rpython_ids::ImplId(impl_id.0),
                         def_id: impl_id,
                         self_ty: self_type,
-                        interface_ref: None,
+                        interface_ref: interface_def,
                         methods,
                     });
                 }
@@ -75,7 +81,72 @@ impl<'a> TypeCtxt<'a> {
         }
     }
 
-    fn find_impl_def_for_type(&self, _ty: TypeId) -> Option<DefId> {
+    fn resolve_method(&self, recv_ty: TypeId, method: &str) -> Option<DefId> {
+        if let Some(def) = self.impl_table.find_method(recv_ty, method) {
+            return Some(def);
+        }
+        let recv_def = self.adt_def_id(recv_ty)?;
+        for entry in self.impl_table.entries() {
+            if self.adt_def_id(entry.self_ty) == Some(recv_def) {
+                if let Some(&method_def) = entry.methods.get(method) {
+                    return Some(method_def);
+                }
+            }
+        }
+        None
+    }
+
+    fn local_def_for_pat(&self, pat: rpython_ids::PatId) -> Option<DefId> {
+        let pat = self.arena.pat(pat);
+        if let PatKind::Ident { name, .. } = &pat.kind {
+            if let Some(owner) = self.current_fn {
+                return self.resolution.def_map.lookup(owner, name);
+            }
+        }
+        None
+    }
+
+    fn adt_def_id(&self, ty: TypeId) -> Option<DefId> {
+        if let TyKind::Adt { def, .. } = self.db.kind(ty) {
+            Some(*def)
+        } else {
+            None
+        }
+    }
+
+    fn method_on_adt(&self, ty: TypeId, method: &str) -> Option<DefId> {
+        if let TyKind::Adt { def, .. } = self.db.kind(ty) {
+            return self.resolution.def_map.lookup(*def, method);
+        }
+        None
+    }
+
+    fn find_impl_method_def(&self, self_ty: TypeId, method: &str) -> Option<DefId> {
+        let ty_name = self.adt_def_id(self_ty).and_then(|d| self.resolution.def_map.name(d))?;
+        for (def, kind) in self.resolution.def_map.iter() {
+            if let DefKind::Impl { self_ty_name, .. } = kind {
+                if self_ty_name.as_str() == ty_name.as_str() {
+                    if let Some(m) = self.resolution.def_map.lookup(def, method) {
+                        return Some(m);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    pub(crate) fn find_impl_def_for_type(&self, ty: TypeId) -> Option<DefId> {
+        let ty_name = match self.db.kind(ty) {
+            TyKind::Adt { def, .. } => self.resolution.def_map.name(*def)?,
+            _ => return None,
+        };
+        for (def, kind) in self.resolution.def_map.iter() {
+            if let DefKind::Impl { self_ty_name, .. } = kind {
+                if self_ty_name.as_str() == ty_name.as_str() {
+                    return Some(def);
+                }
+            }
+        }
         None
     }
 
@@ -96,6 +167,9 @@ impl<'a> TypeCtxt<'a> {
                 let val_ty = self.check_expr(*value);
                 for &pat in targets {
                     let _ = self.check_pat(pat, val_ty);
+                    if let Some(def) = self.local_def_for_pat(pat) {
+                        self.local_types.insert(def, val_ty);
+                    }
                 }
             }
             StmtKind::AnnAssign { target, ty, value } => {
@@ -235,6 +309,21 @@ impl<'a> TypeCtxt<'a> {
             ExprKind::Path(path) => self.check_path(id, path, span),
             ExprKind::Call { func, args, kwargs } => {
                 let callee = self.check_expr(*func);
+                if let TyKind::Adt { def, .. } = self.db.kind(callee).clone() {
+                    if matches!(
+                        self.resolution.def_map.get(def),
+                        Some(DefKind::Struct { .. })
+                    ) {
+                        for &arg in args {
+                            let _ = self.check_expr(arg);
+                        }
+                        for kw in kwargs {
+                            let _ = self.check_expr(kw.value);
+                        }
+                        self.expr_types.insert(id, callee);
+                        return callee;
+                    }
+                }
                 let (param_tys, ret) = self.fn_ty_parts(callee, span);
                 if args.len() != param_tys.len() {
                     self.handler.emit(
@@ -274,8 +363,8 @@ impl<'a> TypeCtxt<'a> {
             } => {
                 let recv_ty = self.check_expr(*receiver);
                 let resolved = self
-                    .impl_table
-                    .find_method(recv_ty, method)
+                    .resolve_method(recv_ty, method)
+                    .or_else(|| self.method_on_adt(recv_ty, method))
                     .or_else(|| self.resolution.def_map.lookup(self.root, method));
                 if let Some(method_def) = resolved {
                     let callee = self.db.fn_def(method_def, Subst::empty());
@@ -548,13 +637,6 @@ impl<'a> TypeCtxt<'a> {
         (vec![], self.wk.unit)
     }
 
-    fn function_sig_parts(&mut self, def: DefId) -> (Vec<TypeId>, TypeId) {
-        if def == self.wk.print {
-            return (vec![self.db.fresh_infer()], self.wk.unit);
-        }
-        (vec![], self.wk.unit)
-    }
-
     fn def_to_type(&mut self, def: DefId) -> TypeId {
         if let Some(ty) = self.wk.type_for_builtin_def(&self.db, def) {
             return ty;
@@ -571,6 +653,12 @@ impl<'a> TypeCtxt<'a> {
             Some(rpython_resolve::DefKind::BuiltinFn { .. }) => {
                 self.db.fn_def(def, Subst::empty())
             }
+            Some(rpython_resolve::DefKind::Local { .. })
+            | Some(rpython_resolve::DefKind::Param { .. }) => self
+                .local_types
+                .get(&def)
+                .copied()
+                .unwrap_or(self.wk.int),
             _ => self.db.error(),
         }
     }

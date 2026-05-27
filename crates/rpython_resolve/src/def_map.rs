@@ -122,6 +122,13 @@ impl DefMap {
             .copied()
     }
 
+    pub fn children_of(&self, parent: DefId) -> impl Iterator<Item = (&SmolStr, DefId)> + '_ {
+        self.children
+            .get(&parent)
+            .into_iter()
+            .flat_map(|m| m.iter().map(|(k, v)| (k, *v)))
+    }
+
     pub fn get(&self, id: DefId) -> Option<&DefKind> {
         self.defs.get(id.index()).map(|e| &e.kind)
     }

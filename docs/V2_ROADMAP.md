@@ -28,17 +28,17 @@ See [NAMING.md](./NAMING.md) for Rust codebase naming (no opaque abbreviations i
 |-------|----------------|--------|
 | P0 | Workspace, releases, website repo | **done** |
 | P1 | Lexer + fixtures | **done** |
-| P2 | Parser snapshots, recovery | in progress |
+| P2 | Parser snapshots, recovery | **partial** |
 | P3 | Multi-file crates, imports | planned |
-| P4 | 50+ typeck tests, full `LANGUAGE.md` | planned |
-| P5 | MIR tests, verbose IR dumps, SSA | planned |
-| P6 | LLVM feature flag + C backend | planned |
-| P7 | Class + enum + interface codegen | planned |
-| P8 | Interface dispatch + monomorphization | planned |
-| P9 | Real borrowck + drops | planned |
-| P10 | `stdlib/`, `rpythonc test` | planned |
+| P4 | 50+ typeck tests, full `LANGUAGE.md` | **partial** |
+| P5 | MIR tests, verbose IR dumps, SSA | **partial** |
+| P6 | LLVM feature flag + C backend | **partial** (C ships; LLVM planned) |
+| P7 | Class + enum + interface codegen | **partial** |
+| P8 | Interface dispatch + monomorphization | **partial** |
+| P9 | Real borrowck + drops | **partial** |
+| P10 | `stdlib/`, `rpythonc test` | **partial** |
 | P11 | `match`, `for`, modules, UI tests | planned |
-| P12 | DWARF, cache, benches, `cargo install` | planned |
+| P12 | DWARF, cache, benches, `cargo install` | **partial** |
 
 ---
 

@@ -20,6 +20,10 @@ pub enum HirStmtKind {
     Expr(HirExprId),
     Return(Option<HirExprId>),
     Drop(Place),
+    While {
+        cond: HirExprId,
+        body: Vec<HirStmtId>,
+    },
 }
 
 /// Function body in HIR.

@@ -166,13 +166,16 @@ impl<'a> ExprResolver<'a> {
         match &pat.kind {
             PatKind::Ident { name, subpat, .. } => {
                 if declare {
-                    if let Some(owner) = self.current_fn {
+                    if self.ribs.resolve(name).is_some() {
+                        // Assignment to an existing binding (parameter or local).
+                    } else if let Some(owner) = self.current_fn {
                         let index = self.ribs.current().bindings.len() as u32;
                         let def = self.def_map.alloc(crate::def_map::DefKind::Local {
                             owner,
                             index,
                             name: name.clone(),
                         });
+                        self.def_map.insert_name(owner, name.clone(), def);
                         if self.ribs.define(name.clone(), def).is_some() {
                             self.handler.emit(
                                 Diagnostic::error(format!("duplicate binding `{name}`"))

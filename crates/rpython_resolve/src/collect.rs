@@ -116,9 +116,10 @@ impl<'a> Collector<'a> {
                     interface_ref: None,
                     self_ty_name: self_name.clone().into(),
                 });
+                let struct_def = self.def_map.lookup(self.parent, self_name.as_str());
                 self.ribs.push(ScopeKind::Impl, def, Some(self.parent));
                 for impl_item in items {
-                    self.collect_impl_item(impl_item, def, arena);
+                    self.collect_impl_item(impl_item, def, struct_def, arena);
                 }
                 self.ribs.pop();
                 let _ = interface_name;
@@ -160,11 +161,14 @@ impl<'a> Collector<'a> {
                     return;
                 }
                 self.def_map.insert_name(self.parent, name.clone(), def);
-                self.ribs.push(ScopeKind::Class, def, Some(self.parent));
+                let old_parent = self.parent;
+                self.parent = def;
+                self.ribs.push(ScopeKind::Class, def, Some(old_parent));
                 for &nested in body {
                     self.collect_item(nested, arena);
                 }
                 self.ribs.pop();
+                self.parent = old_parent;
             }
             ItemKind::Module { name, items } => {
                 let def = self.def_map.alloc(DefKind::Module(
@@ -183,7 +187,13 @@ impl<'a> Collector<'a> {
         }
     }
 
-    fn collect_impl_item(&mut self, item: &ImplItem, owner: DefId, arena: &Arena) {
+    fn collect_impl_item(
+        &mut self,
+        item: &ImplItem,
+        owner: DefId,
+        struct_def: Option<DefId>,
+        arena: &Arena,
+    ) {
         match item {
             ImplItem::Function {
                 name,
@@ -198,10 +208,11 @@ impl<'a> Collector<'a> {
                     name: name.clone(),
                     sig_span: *span,
                 });
-                if self.define_name(name.clone(), def, *span) {
-                    return;
-                }
                 self.def_map.insert_name(owner, name.clone(), def);
+                if let Some(sd) = struct_def {
+                    self.def_map.insert_name(sd, name.clone(), def);
+                }
+                let _ = self.ribs.define(name.clone(), def);
                 self.collect_fn_generics_and_params(def, generics, params, arena);
             }
             ImplItem::Const { name, .. } => {
@@ -241,6 +252,8 @@ impl<'a> Collector<'a> {
                 index: idx as u32,
                 name: param.name.clone(),
             });
+            self.def_map
+                .insert_name(owner, param.name.clone(), def);
             let _ = self.ribs.define(param.name.clone(), def);
         }
         self.ribs.pop();

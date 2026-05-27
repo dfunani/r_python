@@ -2,18 +2,36 @@
 
 ## 2.0.0 — 2026-05-27
 
+### Language & compiler
+
+- **`interface`** keyword (`trait` deprecated alias); **`class`** / **`struct`** with method dispatch
+- **`impl Interface for Type`** static dispatch; struct literals and field access
+- **`while`**, **`%`**, assignment to locals/parameters, multi-function programs (`gcd.rpy`)
+- MIR: aggregates, field projections, loop CFG, improved rvalue lowering
+- Name resolution: params in `def_map`, locals registered, impl methods on types
+- Borrowck scaffold (move tracking; full diagnostics planned)
+- **`stdlib/`** scaffold: `core/prelude.rpy`, `core/option.rpy`, `collections/vec.rpy`
+
 ### Language & DX
 
-- **`interface`** keyword (replaces user-facing “trait”; `trait` deprecated alias)
-- **`class`** as default OOP; **`struct`** for plain data only (documented)
 - CLI subcommands: `run`, `build`, `test`, `explain`, `tokens`; `-r` / `--run` retained
 - Verbose emit stages: `high-level-ir`, `mid-level-ir` (aliases `hir`, `mir`)
 - Verbose driver API names; `CompilationStage` replaces abbreviated `EmitStage`
 
+### Examples (e2e via `rpythonc run`)
+
+- `hello.rpy`, `gcd.rpy`, `interfaces_demo.rpy`, `classes_demo.rpy`, `traits_demo.rpy`
+
 ### Docs & web
 
-- [r_python_web](https://github.com/dfunani/r_python_web) — official docs, install, playground
-- [V2_ROADMAP.md](docs/V2_ROADMAP.md), [NAMING.md](docs/NAMING.md)
+- [r_python_web](https://github.com/dfunani/r_python_web) — v2.0 site copy, roadmap phases updated
+- [V2_ROADMAP.md](docs/V2_ROADMAP.md), [NAMING.md](docs/NAMING.md), [LANGUAGE.md](docs/LANGUAGE.md)
+
+### Known limitations (post-2.0)
+
+- LLVM backend (C backend used for native builds)
+- Full borrow-checker, automatic stdlib loading, multi-file crates
+- `match` / `for` / exhaustive enums through codegen
 
 ## 1.0.0 — 2026-05-27
 

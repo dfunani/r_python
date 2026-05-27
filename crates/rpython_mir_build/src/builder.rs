@@ -142,6 +142,7 @@ pub fn hir_binary_to_mir(op: rpython_hir::BinaryOp) -> BinOp {
         H::GtEq => BinOp::Ge,
         H::And => BinOp::And,
         H::Or => BinOp::Or,
+        H::Mod => BinOp::Rem,
     }
 }
 

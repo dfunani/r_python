@@ -7,6 +7,15 @@ VERSION="${RPYTHON_VERSION:-}"
 PREFIX="${PREFIX:-$HOME/.local}"
 BIN_DIR="${PREFIX}/bin"
 
+# Must not be `local` — EXIT trap runs after main() returns and would see an unbound var with `set -u`.
+INSTALL_TMP=""
+
+cleanup() {
+  if [[ -n "${INSTALL_TMP}" && -d "${INSTALL_TMP}" ]]; then
+    rm -rf "${INSTALL_TMP}"
+  fi
+}
+
 detect_target() {
   local os arch
   os="$(uname -s)"
@@ -40,34 +49,34 @@ latest_version() {
 }
 
 main() {
-  local target asset url tmp
+  local target asset_alias asset_versioned base_url
   target="$(detect_target)"
 
-  if [[ -z "$VERSION" ]]; then
+  if [[ -z "${VERSION}" ]]; then
     VERSION="$(latest_version)"
-    if [[ -z "$VERSION" ]]; then
+    if [[ -z "${VERSION}" ]]; then
       echo "No GitHub release found. Set RPYTHON_VERSION or build from source." >&2
       exit 1
     fi
   fi
 
-  # Prefer stable alias (CI copies rpythonc-1.0.0-TARGET → rpythonc-TARGET)
   asset_alias="rpythonc-${target}.tar.gz"
   asset_versioned="rpythonc-${VERSION}-${target}.tar.gz"
   base_url="https://github.com/${REPO}/releases/download/v${VERSION}"
 
   echo "Installing rpythonc v${VERSION} for ${target} -> ${BIN_DIR}"
-  mkdir -p "$BIN_DIR"
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+  mkdir -p "${BIN_DIR}"
 
-  if curl -fsSL "${base_url}/${asset_alias}" -o "${tmp}/pkg.tar.gz" 2>/dev/null; then
+  INSTALL_TMP="$(mktemp -d)"
+  trap cleanup EXIT
+
+  if curl -fsSL "${base_url}/${asset_alias}" -o "${INSTALL_TMP}/pkg.tar.gz" 2>/dev/null; then
     :
   else
-    curl -fsSL "${base_url}/${asset_versioned}" -o "${tmp}/pkg.tar.gz"
+    curl -fsSL "${base_url}/${asset_versioned}" -o "${INSTALL_TMP}/pkg.tar.gz"
   fi
-  tar -xzf "${tmp}/pkg.tar.gz" -C "$tmp"
-  install -m 755 "${tmp}/rpythonc" "${BIN_DIR}/rpythonc"
+  tar -xzf "${INSTALL_TMP}/pkg.tar.gz" -C "${INSTALL_TMP}"
+  install -m 755 "${INSTALL_TMP}/rpythonc" "${BIN_DIR}/rpythonc"
 
   if [[ ":$PATH:" != *":${BIN_DIR}:"* ]]; then
     echo ""
@@ -77,7 +86,13 @@ main() {
 
   echo ""
   "${BIN_DIR}/rpythonc" --version 2>/dev/null || true
-  echo "Done. Try: rpythonc --run examples/hello.rpy"
+  echo "Done."
+  echo ""
+  echo "Quick test (rPython syntax — not Python):"
+  echo '  printf "%s\n" "def main() -> int:" "    print(\"hello, rPython\")" "    return 0" > hello.rpy'
+  echo "  rpythonc run hello.rpy"
+  echo ""
+  echo "For the latest compiler (v2+), build from source — see INSTALL.md"
 }
 
 main "$@"

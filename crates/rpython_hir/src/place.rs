@@ -80,6 +80,7 @@ pub enum BinaryOp {
     GtEq,
     And,
     Or,
+    Mod,
 }
 
 /// Aggregate kinds.

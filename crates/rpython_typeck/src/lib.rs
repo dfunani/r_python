@@ -33,6 +33,7 @@ pub struct TypedCrate {
     pub fn_ret: FxHashMap<DefId, TypeId>,
     pub fn_params: FxHashMap<DefId, Vec<TypeId>>,
     pub mono_instances: Vec<MonoInstance>,
+    pub impl_table: ImplTable,
 }
 
 impl TypedCrate {
@@ -127,6 +128,7 @@ impl<'a> TypeCtxt<'a> {
             fn_ret,
             fn_params,
             mono_instances: self.mono_instances,
+            impl_table: self.impl_table,
         }
     }
 }
@@ -139,6 +141,7 @@ pub fn typeck(
 ) -> Option<TypedCrate> {
     let resolved = resolve_for_typeck(module, arena, handler)?;
     let mut tcx = TypeCtxt::new(&resolved, arena, handler);
+    tcx.collect_item_sigs(arena);
     tcx.check_module_items(&module.items);
     let typed = tcx.into_typed();
     if handler.has_errors() {
@@ -156,6 +159,7 @@ pub fn typecheck(
 ) -> Option<TypedCrate> {
     let resolved = ResolvedCrate::from_resolution(resolution.clone(), module, arena);
     let mut tcx = TypeCtxt::new(&resolved, arena, handler);
+    tcx.collect_item_sigs(arena);
     tcx.check_module_items(&module.items);
     let typed = tcx.into_typed();
     if handler.has_errors() {

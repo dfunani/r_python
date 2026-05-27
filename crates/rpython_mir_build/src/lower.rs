@@ -1,11 +1,10 @@
 use rpython_hir::{
-    HirBody, HirConst, HirExpr, HirExprKind, HirOwnerKind, HirStmt, HirStmtKind, Operand, Place,
-    Rvalue, UnaryOp,
+    AggregateKind, HirBody, HirConst, HirExprKind, HirStmtKind, Operand, Place, Rvalue, UnaryOp,
 };
 use rpython_ids::{BlockId, LocalId};
 use rpython_mir::{
-    BasicBlock, BinOp, ConstValue, FnOperand, LocalDecl, MirBody, Operand as MirOperand, Place as MirPlace,
-    Rvalue as MirRvalue, StatementKind, Terminator, TerminatorKind, UnaryOp as MirUnaryOp,
+    AggregateKind as MirAggregateKind, BinOp, ConstValue, FnOperand, MirBody, Operand as MirOperand,
+    Place as MirPlace, Projection, Rvalue as MirRvalue, TerminatorKind, UnaryOp as MirUnaryOp,
 };
 use rpython_span::Span;
 use rpython_types::Mutability;
@@ -19,9 +18,8 @@ pub fn lower_function(body: &HirBody) -> MirBody {
         .map(|l| l.span)
         .unwrap_or_else(Span::dummy);
     let mut builder = MirBuilder::new(body.ret_ty, span);
-
-    for &param in &body.params {
-        let _ = param;
+    for local in &body.locals {
+        builder.alloc_local(local.ty, local.mutability, local.span);
     }
 
     for &stmt_id in &body.stmts {
@@ -72,6 +70,31 @@ fn lower_stmt(builder: &mut MirBuilder, body: &HirBody, stmt_id: rpython_hir::Hi
         HirStmtKind::Drop(place) => {
             let _ = lower_place(place);
         }
+        HirStmtKind::While {
+            cond,
+            body: while_body,
+        } => {
+            let header = builder.new_block(span);
+            let body_bb = builder.new_block(span);
+            let exit = builder.new_block(span);
+            builder.terminate(TerminatorKind::Goto { target: header }, span);
+            builder.switch_to(header);
+            let c = lower_expr(builder, body, *cond, span);
+            builder.terminate(
+                TerminatorKind::SwitchInt {
+                    discr: rpython_mir::OperandPlace::Place(c),
+                    targets: vec![(1, body_bb)],
+                    otherwise: exit,
+                },
+                span,
+            );
+            builder.switch_to(body_bb);
+            for &stmt_id in while_body {
+                lower_stmt(builder, body, stmt_id);
+            }
+            builder.terminate(TerminatorKind::Goto { target: header }, span);
+            builder.switch_to(exit);
+        }
     }
 }
 
@@ -88,7 +111,7 @@ fn lower_expr(
             builder.assign_const(MirPlace::local(local), hir_const(c), span);
             MirPlace::local(local)
         }
-        HirExprKind::Local(local) => MirPlace::local(*local),
+        HirExprKind::Local(local) => lower_place(&Place::local(*local)),
         HirExprKind::Path { def, .. } => {
             let local = builder.alloc_local(expr.ty, Mutability::Imm, span);
             let next = builder.new_block(span);
@@ -157,6 +180,30 @@ fn lower_expr(
             builder.switch_to(next);
             MirPlace::local(dest)
         }
+        HirExprKind::Struct { def, fields } => {
+            let mut ops = Vec::new();
+            for (_, field_expr) in fields {
+                let p = lower_expr(builder, body, *field_expr, span);
+                ops.push(MirOperand::Copy(p));
+            }
+            let local = builder.alloc_local(expr.ty, Mutability::Imm, span);
+            builder.assign_rvalue(
+                MirPlace::local(local),
+                MirRvalue::Aggregate {
+                    kind: MirAggregateKind::Struct(*def),
+                    ops,
+                },
+                span,
+            );
+            MirPlace::local(local)
+        }
+        HirExprKind::Field { base, field_index } => {
+            let base_place = lower_expr(builder, body, *base, span);
+            MirPlace {
+                local: base_place.local,
+                projection: vec![Projection::Field(*field_index)],
+            }
+        }
         HirExprKind::If {
             cond,
             then,
@@ -213,9 +260,21 @@ fn lower_rvalue(
             left: lower_operand(left),
             right: lower_operand(right),
         },
-        Rvalue::Aggregate(_, _) | Rvalue::Ref { .. } | Rvalue::Len(_) | Rvalue::Discriminant(_) => {
-            MirRvalue::Use(MirOperand::Constant(ConstValue::Unit))
-        }
+        Rvalue::Aggregate(kind, ops) => MirRvalue::Aggregate {
+            kind: match kind {
+                AggregateKind::Tuple => MirAggregateKind::Tuple,
+                AggregateKind::Struct(def) => MirAggregateKind::Struct(*def),
+                AggregateKind::Enum(def, v) => MirAggregateKind::Enum(*def, *v),
+            },
+            ops: ops.iter().map(lower_operand).collect(),
+        },
+        Rvalue::Ref { place, .. } => MirRvalue::Ref {
+            region: rpython_types::RegionId(0),
+            mutability: Mutability::Imm,
+            place: lower_place(place),
+        },
+        Rvalue::Len(p) => MirRvalue::Len(lower_place(p)),
+        Rvalue::Discriminant(p) => MirRvalue::Discriminant(lower_place(p)),
     }
 }
 
@@ -228,8 +287,16 @@ fn lower_operand(op: &Operand) -> MirOperand {
 
 fn lower_place(p: &Place) -> MirPlace {
     MirPlace {
-        local: p.local,
-        projection: Vec::new(),
+        local: LocalId::from_usize(p.local.index() + 1),
+        projection: p
+            .projection
+            .iter()
+            .map(|proj| match proj {
+                rpython_hir::Projection::Field(i) => Projection::Field(*i),
+                rpython_hir::Projection::Index(_) => Projection::Field(0),
+                rpython_hir::Projection::Deref => Projection::Deref,
+            })
+            .collect(),
     }
 }
 
@@ -261,5 +328,6 @@ fn lower_binop(op: rpython_hir::BinaryOp) -> BinOp {
         rpython_hir::BinaryOp::GtEq => BinOp::Ge,
         rpython_hir::BinaryOp::And => BinOp::And,
         rpython_hir::BinaryOp::Or => BinOp::Or,
+        rpython_hir::BinaryOp::Mod => BinOp::Rem,
     }
 }

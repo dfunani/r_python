@@ -11,6 +11,7 @@ Prebuilt `rpythonc` is published on [GitHub Releases](https://github.com/dfunani
 | Target | Platform |
 |--------|----------|
 | `x86_64-unknown-linux-gnu` | Linux x64 |
+| `aarch64-unknown-linux-gnu` | Linux ARM64 (e.g. Raspberry Pi, ARM VMs) |
 | `aarch64-apple-darwin` | macOS Apple Silicon |
 | `x86_64-apple-darwin` | macOS Intel |
 
@@ -79,10 +80,11 @@ rpythonc --run examples/hello.rpy
 
 ```bash
 # Run in the MIR interpreter (no native code)
-rpythonc --run program.rpy
+rpythonc run program.rpy
+# legacy: rpythonc --run program.rpy
 
 # Compile to a native executable (requires cc on PATH)
-rpythonc -o ./myapp program.rpy
+rpythonc build -o ./myapp program.rpy
 ./myapp
 
 # Debug compiler stages
@@ -101,6 +103,53 @@ rpythonc --emit mir program.rpy
 - **Windows:** not yet supported in release matrix (build from source with MSVC)
 
 The compiler emits C and invokes your system linker automatically.
+
+---
+
+## Troubleshooting
+
+### `bash: tmp: unbound variable` after install
+
+Fixed in current `main` — re-run install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dfunani/r_python/main/scripts/install.sh | bash
+```
+
+Older scripts used a `local` temp dir; the cleanup trap ran after `main` exited and tripped `set -u`.
+
+### `failed to read examples/hello.rpy`
+
+The install script does not ship examples. Create a file in **your current directory** or clone the repo:
+
+```bash
+git clone https://github.com/dfunani/r_python.git
+cd r_python
+rpythonc run examples/hello.rpy
+```
+
+### `rpythonc` exits with `killed` (no message)
+
+Usually the Linux OOM killer (exit 137) or a very old binary. Try:
+
+1. **Use real rPython syntax** — renaming `hello.py` is not enough; Python syntax is not supported.
+2. **Build from source** (recommended on ARM Linux for latest fixes):
+
+```bash
+sudo apt-get install -y build-essential curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+git clone https://github.com/dfunani/r_python.git
+cd r_python
+cargo build -p rpython_cli --release
+./target/release/rpythonc run examples/hello.rpy
+```
+
+3. Check memory: `dmesg | tail` for `Out of memory` / `Killed process`.
+
+### Still on v1.0.0 from `releases/latest`
+
+GitHub **latest** points at the newest tag. After **v2.0.0** is published, re-run install or set `RPYTHON_VERSION=2.0.0`.
 
 ---
 

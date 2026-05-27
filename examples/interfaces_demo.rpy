@@ -2,10 +2,9 @@
 # Prefer `interface` over deprecated `trait`.
 
 interface Show:
-    def show(self) -> str:
-        ...
+    def show(self) -> str
 
-class Point:
+struct Point:
     x: int
     y: int
 

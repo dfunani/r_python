@@ -5,10 +5,12 @@ use rpython_ast::{
     UnaryOp as AstUnaryOp,
 };
 use rpython_hir::{
-    AggregateKind, BinaryOp, HirBody, HirConst, HirCrate, HirExpr, HirExprId, HirExprKind,
-    HirOwner, HirOwnerKind, HirPat, HirPatId, HirPatKind, HirStmt, HirStmtId, HirStmtKind,
-    LocalDecl, Operand, Place, Rvalue, UnaryOp,
+    BinaryOp, HirBody, HirConst, HirCrate, HirExpr, HirExprId, HirExprKind, HirOwner,
+    HirOwnerKind, HirPat, HirPatId, HirPatKind, HirStmt, HirStmtId, HirStmtKind, LocalDecl,
+    Operand, Place, Rvalue, UnaryOp,
 };
+use rpython_resolve::DefKind;
+use rpython_types::TyKind;
 use rpython_ids::{DefId, LocalId};
 use rpython_resolve::resolve_path;
 use rpython_typeck::TypedCrate;
@@ -82,6 +84,7 @@ impl HirBuilder {
 pub fn build_hir(typed: &TypedCrate, module: &Module, arena: &Arena) -> HirCrate {
     let mut hir_crate = HirCrate::default();
     let unit = typed.unit;
+    let mut lowered = std::collections::HashSet::new();
 
     for &(item_id, def_id) in &typed.resolved.item_def_ids {
         let item = arena.item(item_id);
@@ -93,45 +96,164 @@ pub fn build_hir(typed: &TypedCrate, module: &Module, arena: &Arena) -> HirCrate
             ..
         } = &item.kind
         {
-            let mut b = HirBuilder::new();
-            let ret = typed.fn_ret.get(&def_id).copied().unwrap_or(unit);
-            let mut param_locals = Vec::new();
-            let param_tys = typed.fn_params.get(&def_id).cloned().unwrap_or_default();
-
-            for (i, p) in params.iter().enumerate() {
-                let ty = param_tys.get(i).copied().unwrap_or(unit);
-                let local = b.alloc_local(p.name.clone(), ty, Mutability::Imm, p.span);
-                param_locals.push(local);
+            if lowered.insert(def_id) {
+                build_one_function(
+                    &mut hir_crate, typed, arena, def_id, name, params, *ret_ty, body, unit,
+                );
             }
+        }
+    }
 
-            let mut stmt_ids = Vec::new();
-            for &stmt_id in body {
-                stmt_ids.push(lower_stmt(&mut b, typed, arena, stmt_id));
+    for &item_id in &module.items {
+        let item = arena.item(item_id);
+        match &item.kind {
+            ItemKind::Class { name, body, .. } => {
+                if let Some(owner) = typed.resolved.def_map.lookup(typed.resolved.root, name) {
+                    for &nested in body {
+                        if let ItemKind::Function {
+                            name: m,
+                            params,
+                            ret_ty,
+                            body,
+                            ..
+                        } = &arena.item(nested).kind
+                        {
+                            if let Some(def) = typed.resolved.def_map.lookup(owner, m) {
+                                if lowered.insert(def) {
+                                    build_one_function(
+                                        &mut hir_crate,
+                                        typed,
+                                        arena,
+                                        def,
+                                        m,
+                                        params,
+                                        *ret_ty,
+                                        body,
+                                        unit,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            let body = HirBody {
-                def_id,
-                name: name.clone(),
-                params: param_locals,
-                ret_ty: ret_ty.map(|_| ret).unwrap_or(ret),
-                stmts: stmt_ids,
-                exprs: b.exprs,
-                stmts_data: b.stmts,
-                pats: b.pats,
-                locals: b.locals,
-            };
-
-            hir_crate.owners.insert(
-                def_id,
-                HirOwner {
-                    def_id,
-                    kind: HirOwnerKind::Function(body),
-                },
-            );
+            ItemKind::Impl { self_ty, items, .. } => {
+                let self_name = type_name_from_ty(*self_ty, arena);
+                let impl_def = typed
+                    .resolved
+                    .def_map
+                    .iter()
+                    .find_map(|(def, kind)| match kind {
+                        DefKind::Impl { self_ty_name, .. } if self_ty_name.as_str() == self_name => {
+                            Some(def)
+                        }
+                        _ => None,
+                    });
+                if let Some(owner) = impl_def {
+                    for impl_item in items {
+                        if let rpython_ast::ImplItem::Function {
+                            name,
+                            params,
+                            ret_ty,
+                            body,
+                            ..
+                        } = impl_item
+                        {
+                            if let Some(def) = typed.resolved.def_map.lookup(owner, name) {
+                                if lowered.insert(def) {
+                                    build_one_function(
+                                        &mut hir_crate,
+                                        typed,
+                                        arena,
+                                        def,
+                                        name,
+                                        params,
+                                        *ret_ty,
+                                        body,
+                                        unit,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
     hir_crate
+}
+
+fn build_one_function(
+    hir_crate: &mut HirCrate,
+    typed: &TypedCrate,
+    arena: &Arena,
+    def_id: DefId,
+    name: &SmolStr,
+    params: &[rpython_ast::Param],
+    ret_ty: Option<rpython_ids::TyId>,
+    body: &[rpython_ids::StmtId],
+    unit: rpython_types::TypeId,
+) {
+    let mut b = HirBuilder::new();
+    let ret = typed.fn_ret.get(&def_id).copied().unwrap_or(unit);
+    let param_tys = typed.fn_params.get(&def_id).cloned().unwrap_or_default();
+    let mut param_locals = Vec::new();
+
+    for (i, p) in params.iter().enumerate() {
+        let ty = param_tys.get(i).copied().unwrap_or(unit);
+        let local = b.alloc_local(p.name.clone(), ty, Mutability::Imm, p.span);
+        param_locals.push(local);
+    }
+
+    let mut stmt_ids = Vec::new();
+    for &stmt_id in body {
+        stmt_ids.push(lower_stmt(&mut b, typed, arena, stmt_id));
+    }
+
+    let body = HirBody {
+        def_id,
+        name: name.clone(),
+        params: param_locals,
+        ret_ty: ret_ty.map(|_| ret).unwrap_or(ret),
+        stmts: stmt_ids,
+        exprs: b.exprs,
+        stmts_data: b.stmts,
+        pats: b.pats,
+        locals: b.locals,
+    };
+
+    hir_crate.owners.insert(
+        def_id,
+        HirOwner {
+            def_id,
+            kind: HirOwnerKind::Function(body),
+        },
+    );
+}
+
+fn resolve_method_def(typed: &TypedCrate, recv_ty: rpython_types::TypeId, method: &str) -> DefId {
+    if let Some(d) = typed.impl_table.find_method(recv_ty, method) {
+        return d;
+    }
+    if let TyKind::Adt { def, .. } = typed.interner().kind(recv_ty) {
+        if let Some(d) = typed.resolved.def_map.lookup(*def, method) {
+            return d;
+        }
+    }
+    DefId::from_usize(0)
+}
+
+fn type_name_from_ty(ty: rpython_ids::TyId, arena: &Arena) -> String {
+    match &arena.ty(ty).kind {
+        rpython_ast::TyKind::Path(p) => p
+            .segments
+            .last()
+            .map(|s| s.ident.to_string())
+            .unwrap_or_else(|| "_".into()),
+        _ => "_".into(),
+    }
 }
 
 fn lower_stmt(
@@ -152,21 +274,9 @@ fn lower_stmt(
             if let Some(&pat_id) = targets.first() {
                 let val_ty = typed.expr_types.get(&value).copied().unwrap_or(unit);
                 let place = lower_pat_assign(b, typed, arena, pat_id, val_ty, stmt.span);
-                let val = lower_expr(b, typed, arena, *value);
-                let src = match &b.exprs[val.index()].kind {
-                    HirExprKind::Local(l) => Place::local(*l),
-                    _ => Place::local(b.alloc_local(
-                        SmolStr::new("_tmp"),
-                        val_ty,
-                        rpython_types::Mutability::Imm,
-                        stmt.span,
-                    )),
-                };
+                let rvalue = lower_expr_to_rvalue(b, typed, arena, *value);
                 return b.alloc_stmt(
-                    HirStmtKind::Assign {
-                        place,
-                        rvalue: Rvalue::Use(Operand::Copy(src)),
-                    },
+                    HirStmtKind::Assign { place, rvalue },
                     stmt.span,
                 );
             }
@@ -202,10 +312,17 @@ fn lower_stmt(
         }
         StmtKind::While { test, body } => {
             let cond = lower_expr(b, typed, arena, *test);
+            let mut body_stmts = Vec::new();
             for &s in body {
-                lower_stmt(b, typed, arena, s);
+                body_stmts.push(lower_stmt(b, typed, arena, s));
             }
-            b.alloc_stmt(HirStmtKind::Expr(cond), stmt.span)
+            b.alloc_stmt(
+                HirStmtKind::While {
+                    cond,
+                    body: body_stmts,
+                },
+                stmt.span,
+            )
         }
         StmtKind::For { pat, iter, body } => {
             lower_expr(b, typed, arena, *iter);
@@ -255,6 +372,9 @@ fn lower_pat_assign(
                 rpython_ast::PatMutability::Imm => Mutability::Imm,
                 rpython_ast::PatMutability::Mut => Mutability::Mut,
             };
+            if let Some(local) = b.lookup_local(name.as_str()) {
+                return Place::local(local);
+            }
             let local = b.alloc_local(name.clone(), ty, mutability, span);
             Place::local(local)
         }
@@ -346,13 +466,27 @@ fn lower_expr(
             } else {
                 DefId::from_usize(0)
             };
-            HirExprKind::Call {
-                def,
-                subst: Subst::default(),
-                args: args
-                    .iter()
-                    .map(|&a| lower_expr(b, typed, arena, a))
-                    .collect(),
+            if matches!(
+                typed.resolved.def_map.get(def),
+                Some(DefKind::Struct { .. })
+            ) {
+                HirExprKind::Struct {
+                    def,
+                    fields: args
+                        .iter()
+                        .enumerate()
+                        .map(|(i, &a)| (i as u32, lower_expr(b, typed, arena, a)))
+                        .collect(),
+                }
+            } else {
+                HirExprKind::Call {
+                    def,
+                    subst: Subst::default(),
+                    args: args
+                        .iter()
+                        .map(|&a| lower_expr(b, typed, arena, a))
+                        .collect(),
+                }
             }
         }
         ExprKind::If {
@@ -381,10 +515,30 @@ fn lower_expr(
                     .collect(),
             }
         }
-        ExprKind::Field { base, field: _ } => HirExprKind::Field {
-            base: lower_expr(b, typed, arena, *base),
-            field_index: 0,
-        },
+        ExprKind::Field { base, field } => {
+            let base_ty = typed.expr_types.get(base).copied().unwrap_or(unit);
+            HirExprKind::Field {
+                base: lower_expr(b, typed, arena, *base),
+                field_index: field_index_for_type(typed, base_ty, field.as_str()),
+            }
+        }
+        ExprKind::MethodCall {
+            receiver,
+            method,
+            args,
+        } => {
+            let recv_ty = typed.expr_types.get(receiver).copied().unwrap_or(unit);
+            let method_def = resolve_method_def(typed, recv_ty, method.as_str());
+            let mut call_args = vec![lower_expr(b, typed, arena, *receiver)];
+            for &a in args {
+                call_args.push(lower_expr(b, typed, arena, a));
+            }
+            HirExprKind::Call {
+                def: method_def,
+                subst: Subst::default(),
+                args: call_args,
+            }
+        }
         ExprKind::Block(stmts) => {
             for &s in stmts {
                 lower_stmt(b, typed, arena, s);
@@ -413,6 +567,7 @@ fn lower_binop(op: AstBinOp) -> BinaryOp {
         AstBinOp::Sub => BinaryOp::Sub,
         AstBinOp::Mul => BinaryOp::Mul,
         AstBinOp::Div => BinaryOp::Div,
+        AstBinOp::Mod | AstBinOp::FloorDiv => BinaryOp::Mod,
         AstBinOp::Eq => BinaryOp::Eq,
         AstBinOp::NotEq => BinaryOp::NotEq,
         AstBinOp::Lt => BinaryOp::Lt,
@@ -423,4 +578,131 @@ fn lower_binop(op: AstBinOp) -> BinaryOp {
         AstBinOp::Or => BinaryOp::Or,
         _ => BinaryOp::Add,
     }
+}
+
+fn field_index_for_type(typed: &TypedCrate, ty: rpython_types::TypeId, field: &str) -> u32 {
+    if let TyKind::Adt { def, .. } = typed.interner().kind(ty) {
+        if let Some(DefKind::Struct { fields, .. }) = typed.resolved.def_map.get(*def) {
+            return fields
+                .iter()
+                .position(|f| f.as_str() == field)
+                .unwrap_or(0) as u32;
+        }
+    }
+    0
+}
+
+fn lower_expr_to_rvalue(
+    b: &mut HirBuilder,
+    typed: &TypedCrate,
+    arena: &Arena,
+    expr_id: rpython_ids::ExprId,
+) -> Rvalue {
+    let expr = arena.expr(expr_id);
+    match &expr.kind {
+        ExprKind::Struct { path, fields } => {
+            let def = resolve_path(path, &typed.resolved).unwrap_or(DefId::from_usize(0));
+            let ops: Vec<Operand> = fields
+                .iter()
+                .map(|f| operand_from_expr(b, typed, arena, f.expr))
+                .collect();
+            Rvalue::Aggregate(rpython_hir::AggregateKind::Struct(def), ops)
+        }
+        ExprKind::Unary { op, operand } => Rvalue::UnaryOp {
+            op: match op {
+                AstUnaryOp::Not => UnaryOp::Not,
+                AstUnaryOp::Neg => UnaryOp::Neg,
+                _ => UnaryOp::Neg,
+            },
+            operand: operand_from_expr(b, typed, arena, *operand),
+        },
+        ExprKind::Binary { op, left, right } => Rvalue::BinaryOp {
+            op: lower_binop(*op),
+            left: operand_from_expr(b, typed, arena, *left),
+            right: operand_from_expr(b, typed, arena, *right),
+        },
+        ExprKind::Literal(lit) => Rvalue::Use(Operand::Constant(hir_const_from_ast(lit))),
+        ExprKind::Path(path) => {
+            if let Some(name) = path.is_simple_ident() {
+                if let Some(local) = b.lookup_local(name.as_str()) {
+                    return Rvalue::Use(Operand::Copy(Place::local(local)));
+                }
+            }
+            Rvalue::Use(Operand::Constant(HirConst::Unit))
+        }
+        _ => {
+            let e = lower_expr(b, typed, arena, expr_id);
+            hir_expr_to_rvalue(b, e)
+        }
+    }
+}
+
+fn hir_expr_to_rvalue(b: &HirBuilder, expr: HirExprId) -> Rvalue {
+    match &b.exprs[expr.index()].kind {
+        HirExprKind::Literal(c) => Rvalue::Use(Operand::Constant(c.clone())),
+        HirExprKind::Local(l) => Rvalue::Use(Operand::Copy(Place::local(*l))),
+        HirExprKind::Unary { op, operand } => Rvalue::UnaryOp {
+            op: *op,
+            operand: Operand::Copy(hir_operand_place(b, *operand)),
+        },
+        HirExprKind::Binary { op, left, right } => Rvalue::BinaryOp {
+            op: *op,
+            left: Operand::Copy(hir_operand_place(b, *left)),
+            right: Operand::Copy(hir_operand_place(b, *right)),
+        },
+        HirExprKind::Struct { def, fields } => Rvalue::Aggregate(
+            rpython_hir::AggregateKind::Struct(*def),
+            fields
+                .iter()
+                .map(|(_, e)| Operand::Copy(hir_operand_place(b, *e)))
+                .collect(),
+        ),
+        _ => Rvalue::Use(Operand::Constant(HirConst::Unit)),
+    }
+}
+
+fn hir_operand_place(b: &HirBuilder, expr: HirExprId) -> Place {
+    match &b.exprs[expr.index()].kind {
+        HirExprKind::Local(l) => Place::local(*l),
+        HirExprKind::Field { base, field_index } => {
+            let base_place = hir_operand_place(b, *base);
+            Place {
+                local: base_place.local,
+                projection: {
+                    let mut p = base_place.projection;
+                    p.push(rpython_hir::Projection::Field(*field_index));
+                    p
+                },
+            }
+        }
+        _ => Place::local(LocalId::from_usize(0)),
+    }
+}
+
+fn operand_from_expr(
+    b: &mut HirBuilder,
+    typed: &TypedCrate,
+    arena: &Arena,
+    expr_id: rpython_ids::ExprId,
+) -> Operand {
+    let expr = arena.expr(expr_id);
+    match &expr.kind {
+        ExprKind::Literal(lit) => Operand::Constant(hir_const_from_ast(lit)),
+        ExprKind::Path(path) => {
+            if let Some(name) = path.is_simple_ident() {
+                if let Some(local) = b.lookup_local(name.as_str()) {
+                    return Operand::Copy(Place::local(local));
+                }
+            }
+            Operand::Constant(HirConst::Unit)
+        }
+        _ => {
+            let e = lower_expr(b, typed, arena, expr_id);
+            Operand::Copy(hir_operand_place(b, e))
+        }
+    }
+}
+
+fn hir_const_from_ast(lit: &Literal) -> HirConst {
+    ast_literal(lit)
 }
