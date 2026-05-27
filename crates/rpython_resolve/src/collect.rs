@@ -91,8 +91,8 @@ impl<'a> Collector<'a> {
                         .insert_name(def, variant.name.clone(), vdef);
                 }
             }
-            ItemKind::Trait { name, .. } => {
-                let def = self.def_map.alloc(DefKind::Trait {
+            ItemKind::Interface { name, .. } => {
+                let def = self.def_map.alloc(DefKind::Interface {
                     name: name.clone(),
                 });
                 if self.define_name(name.clone(), def, item.span) {
@@ -101,19 +101,19 @@ impl<'a> Collector<'a> {
                 self.def_map.insert_name(self.parent, name.clone(), def);
             }
             ItemKind::Impl {
-                trait_ref,
+                interface_ref,
                 self_ty,
                 items,
                 ..
             } => {
-                let trait_name = trait_ref
+                let interface_name = interface_ref
                     .as_ref()
                     .and_then(|p| p.segments.last())
                     .map(|s| s.ident.to_string())
                     .unwrap_or_default();
                 let self_name = type_name_from_ty(*self_ty, arena);
                 let def = self.def_map.alloc(DefKind::Impl {
-                    trait_ref: None,
+                    interface_ref: None,
                     self_ty_name: self_name.clone().into(),
                 });
                 self.ribs.push(ScopeKind::Impl, def, Some(self.parent));
@@ -121,7 +121,7 @@ impl<'a> Collector<'a> {
                     self.collect_impl_item(impl_item, def, arena);
                 }
                 self.ribs.pop();
-                let _ = trait_name;
+                let _ = interface_name;
             }
             ItemKind::Const { name, ty: _, value: _, is_pub: _ } => {
                 let def = self.def_map.alloc(DefKind::Const {

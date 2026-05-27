@@ -18,8 +18,8 @@ pub struct CompiledUnit {
     pub arena: Arena,
     pub resolution: Option<Resolution>,
     pub typed: Option<TypedCrate>,
-    pub hir: Option<HirCrate>,
-    pub mir: Option<MirCrate>,
+    pub high_level_intermediate: Option<HirCrate>,
+    pub mid_level_intermediate: Option<MirCrate>,
     pub tokens: Option<String>,
 }
 
@@ -33,7 +33,7 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
 
     let token_text = format_token_stream(stream.tokens());
 
-    if session.options.emit == crate::EmitStage::Tokens {
+    if session.options.emit == crate::CompilationStage::LexerTokens {
         session.handler = handler;
         return Ok(CompiledUnit {
             module: Module {
@@ -43,8 +43,8 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
             arena: Arena::new(),
             resolution: None,
             typed: None,
-            hir: None,
-            mir: None,
+            high_level_intermediate: None,
+            mid_level_intermediate: None,
             tokens: Some(token_text),
         });
     }
@@ -56,15 +56,15 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
         return Err(report_errors(session, handler));
     }
 
-    if session.options.emit == crate::EmitStage::Ast {
+    if session.options.emit == crate::CompilationStage::AbstractSyntaxTree {
         session.handler = handler;
         return Ok(CompiledUnit {
             module,
             arena,
             resolution: None,
             typed: None,
-            hir: None,
-            mir: None,
+            high_level_intermediate: None,
+            mid_level_intermediate: None,
             tokens: None,
         });
     }
@@ -86,20 +86,20 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
     let hir = build_hir(&typed, &module, &arena);
     let mir = borrowck_crate(build_mir(&hir));
 
-    if session.options.emit == crate::EmitStage::Hir {
+    if session.options.emit == crate::CompilationStage::HighLevelIntermediateRepresentation {
         session.handler = handler;
         return Ok(CompiledUnit {
             module,
             arena,
             resolution: Some(resolution),
             typed: Some(typed),
-            hir: Some(hir),
-            mir: None,
+            high_level_intermediate: Some(hir),
+            mid_level_intermediate: None,
             tokens: None,
         });
     }
 
-    if session.options.run_interp {
+    if session.options.run_interpreter {
         interpret_crate(&mir).map_err(|e| anyhow::anyhow!("{e}"))?;
     }
 
@@ -109,8 +109,8 @@ pub fn run_pipeline(session: &mut CompilerSession) -> anyhow::Result<CompiledUni
         arena,
         resolution: Some(resolution),
         typed: Some(typed),
-        hir: Some(hir),
-        mir: Some(mir),
+        high_level_intermediate: Some(hir),
+        mid_level_intermediate: Some(mir),
         tokens: None,
     })
 }
@@ -144,21 +144,35 @@ fn report_errors(session: &CompilerSession, handler: Handler) -> anyhow::Error {
     anyhow::anyhow!("{}", emitter.into_string())
 }
 
-pub fn emit_ast(unit: &CompiledUnit) -> String {
+pub fn emit_abstract_syntax_tree(unit: &CompiledUnit) -> String {
     format_module(&unit.module, &unit.arena)
 }
 
-pub fn emit_mir(unit: &CompiledUnit) -> String {
-    unit
-        .mir
+pub fn emit_mid_level_intermediate_representation(unit: &CompiledUnit) -> String {
+    unit.mid_level_intermediate
         .as_ref()
         .map(format_mir_crate)
         .unwrap_or_default()
 }
 
-pub fn emit_hir(unit: &CompiledUnit) -> String {
-    unit.hir
+pub fn emit_high_level_intermediate_representation(unit: &CompiledUnit) -> String {
+    unit.high_level_intermediate
         .as_ref()
         .map(|h| format!("{h:#?}"))
         .unwrap_or_default()
+}
+
+#[deprecated(note = "use emit_abstract_syntax_tree")]
+pub fn emit_ast(unit: &CompiledUnit) -> String {
+    emit_abstract_syntax_tree(unit)
+}
+
+#[deprecated(note = "use emit_mid_level_intermediate_representation")]
+pub fn emit_mir(unit: &CompiledUnit) -> String {
+    emit_mid_level_intermediate_representation(unit)
+}
+
+#[deprecated(note = "use emit_high_level_intermediate_representation")]
+pub fn emit_hir(unit: &CompiledUnit) -> String {
+    emit_high_level_intermediate_representation(unit)
 }

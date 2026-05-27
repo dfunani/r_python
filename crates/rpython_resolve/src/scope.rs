@@ -10,7 +10,7 @@ pub enum ScopeKind {
     Function,
     Block,
     Impl,
-    Trait,
+    Interface,
     Class,
 }
 

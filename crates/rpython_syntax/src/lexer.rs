@@ -634,7 +634,8 @@ fn keyword_or_ident(text: &str) -> TokenKind {
         "enum" => KwEnum,
         "struct" => KwStruct,
         "impl" => KwImpl,
-        "trait" => KwTrait,
+        "interface" => KwInterface,
+        "trait" => KwTrait, // deprecated: use `interface`
         "if" => KwIf,
         "elif" => KwElif,
         "else" => KwElse,

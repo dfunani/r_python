@@ -39,7 +39,7 @@ impl<'a> TypeCtxt<'a> {
             ItemKind::Impl {
                 self_ty,
                 items,
-                trait_ref: _,
+                interface_ref: _,
                 ..
             } => {
                 let self_type = self.ast_ty_to_type(*self_ty);
@@ -61,7 +61,7 @@ impl<'a> TypeCtxt<'a> {
                         impl_id: rpython_ids::ImplId(impl_id.0),
                         def_id: impl_id,
                         self_ty: self_type,
-                        trait_ref: None,
+                        interface_ref: None,
                         methods,
                     });
                 }

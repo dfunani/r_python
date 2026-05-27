@@ -2,7 +2,7 @@
 
 use std::process::Command;
 
-use rpython_driver::{compile_to_executable, CompileOptions, EmitStage, OptLevel};
+use rpython_driver::{compile_to_executable, CompilationStage, CompileOptions, OptLevel};
 
 #[test]
 fn hello_interpret_and_native() {
@@ -17,10 +17,10 @@ fn hello_interpret_and_native() {
         &hello,
         &bin,
         &CompileOptions {
-            emit: EmitStage::Executable,
+            emit: CompilationStage::NativeExecutable,
             output: Some(bin.clone()),
             opt_level: OptLevel::O0,
-            run_interp: false,
+            run_interpreter: false,
         },
     )
     .expect("compile hello.rpy");

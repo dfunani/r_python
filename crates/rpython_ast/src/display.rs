@@ -1,7 +1,7 @@
 use crate::{
     expr::Mutability as ExprMutability, Abi, Arena, Attribute, BinaryOp, ElifArm, ExternItem,
     ExprId, FieldDef, FieldExpr, GenericParam, ImplItem, ItemId, Kwarg, Literal, MatchArm, Param,
-    PatField, PatId, StmtId, TraitItem, TyId, UnaryOp, Variant, VariantFields,
+    InterfaceItem, PatField, PatId, StmtId, TyId, UnaryOp, Variant, VariantFields,
 };
 use crate::{ExprKind, ItemKind, PatKind, StmtKind, TyKind};
 use crate::{Module, Path};
@@ -115,7 +115,7 @@ impl<'a> AstPrinter<'a> {
                 self.print_generics(generics);
                 self.print_variants(variants);
             }
-            ItemKind::Trait {
+            ItemKind::Interface {
                 name,
                 generics,
                 items,
@@ -124,20 +124,20 @@ impl<'a> AstPrinter<'a> {
             } => {
                 self.print_attrs(attrs);
                 self.kv("vis", if *is_pub { "pub" } else { "private" });
-                self.kv("kind", "Trait");
+                self.kv("kind", "Interface");
                 self.kv("name", name.as_str());
                 self.print_generics(generics);
                 self.line("items [");
                 self.bump();
                 for item in items {
-                    self.print_trait_item(item);
+                    self.print_interface_item(item);
                 }
                 self.unbump();
                 self.line("]");
             }
             ItemKind::Impl {
                 generics,
-                trait_ref,
+                interface_ref,
                 self_ty,
                 items,
                 attrs,
@@ -145,8 +145,8 @@ impl<'a> AstPrinter<'a> {
                 self.print_attrs(attrs);
                 self.kv("kind", "Impl");
                 self.print_generics(generics);
-                if let Some(path) = trait_ref {
-                    self.print_path("trait", path);
+                if let Some(path) = interface_ref {
+                    self.print_path("interface", path);
                 }
                 self.print_ty("self_ty", *self_ty);
                 self.line("items [");
@@ -666,9 +666,9 @@ impl<'a> AstPrinter<'a> {
         self.line("]");
     }
 
-    fn print_trait_item(&mut self, item: &TraitItem) {
+    fn print_interface_item(&mut self, item: &InterfaceItem) {
         match item {
-            TraitItem::Function {
+            InterfaceItem::Function {
                 name,
                 generics,
                 params,
@@ -688,7 +688,7 @@ impl<'a> AstPrinter<'a> {
                 }
                 self.unbump();
             }
-            TraitItem::Type { name, ty, .. } => {
+            InterfaceItem::Type { name, ty, .. } => {
                 self.line(&format!("type {}", name));
                 if let Some(ty) = ty {
                     self.print_ty("ty", *ty);

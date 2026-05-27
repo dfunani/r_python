@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.0 — 2026-05-27
+
+### Language & DX
+
+- **`interface`** keyword (replaces user-facing “trait”; `trait` deprecated alias)
+- **`class`** as default OOP; **`struct`** for plain data only (documented)
+- CLI subcommands: `run`, `build`, `test`, `explain`, `tokens`; `-r` / `--run` retained
+- Verbose emit stages: `high-level-ir`, `mid-level-ir` (aliases `hir`, `mir`)
+- Verbose driver API names; `CompilationStage` replaces abbreviated `EmitStage`
+
+### Docs & web
+
+- [r_python_web](https://github.com/dfunani/r_python_web) — official docs, install, playground
+- [V2_ROADMAP.md](docs/V2_ROADMAP.md), [NAMING.md](docs/NAMING.md)
+
 ## 1.0.0 — 2026-05-27
 
 First public release of the rPython compiler workspace.

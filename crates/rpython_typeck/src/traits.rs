@@ -8,11 +8,11 @@ pub struct ImplEntry {
     pub impl_id: ImplId,
     pub def_id: DefId,
     pub self_ty: TypeId,
-    pub trait_ref: Option<DefId>,
+    pub interface_ref: Option<DefId>,
     pub methods: IndexMap<smol_str::SmolStr, DefId>,
 }
 
-/// Table of impls indexed by type and trait.
+/// Table of impl blocks indexed by type and interface.
 #[derive(Clone, Debug, Default)]
 pub struct ImplTable {
     entries: Vec<ImplEntry>,
@@ -50,9 +50,9 @@ pub struct MonoInstance {
     pub subst: Subst,
 }
 
-/// Audit log entry for fulfilled trait obligations (v1 stub).
+/// Audit log entry for fulfilled interface obligations (v2 stub).
 #[derive(Clone, Debug)]
 pub struct FulfilledObligation {
-    pub trait_def: DefId,
+    pub interface_def: DefId,
     pub self_ty: TypeId,
 }

@@ -1,5 +1,5 @@
 use rpython_ast::{
-    Attribute, FieldDef, GenericParam, ImplItem, ItemKind, Param, TraitItem,
+    Attribute, FieldDef, GenericParam, ImplItem, InterfaceItem, ItemKind, Param,
     TyKind, Variant, VariantFields,
 };
 use rpython_ast::{ItemId, Path, TyId, TyMutability};
@@ -40,7 +40,9 @@ impl Parser<'_> {
             TokenKind::KwClass => self.parse_class_item(is_pub, attrs)?,
             TokenKind::KwStruct => self.parse_struct_item(is_pub, attrs)?,
             TokenKind::KwEnum => self.parse_enum_item(is_pub, attrs)?,
-            TokenKind::KwTrait => self.parse_trait_item(is_pub, attrs)?,
+            TokenKind::KwInterface | TokenKind::KwTrait => {
+                self.parse_interface_item(is_pub, attrs)?
+            }
             TokenKind::KwImpl => self.parse_impl_item(attrs)?,
             TokenKind::KwImport => self.parse_import_item()?,
             TokenKind::KwFrom => self.parse_from_import_item()?,
@@ -332,17 +334,17 @@ impl Parser<'_> {
         })
     }
 
-    fn parse_trait_item(&mut self, is_pub: bool, attrs: Vec<Attribute>) -> Option<ItemKind> {
+    fn parse_interface_item(&mut self, is_pub: bool, attrs: Vec<Attribute>) -> Option<ItemKind> {
         self.bump();
         let name = self.parse_ident_name()?;
         let generics = self.parse_generics()?;
         self.skip_layout();
         if !self.eat(TokenKind::Colon) {
-            self.error(self.current().span, "expected ':' after trait name");
+            self.error(self.current().span, "expected ':' after interface name");
             return None;
         }
-        let items = self.parse_trait_item_block()?;
-        Some(ItemKind::Trait {
+        let items = self.parse_interface_item_block()?;
+        Some(ItemKind::Interface {
             name,
             generics,
             items,
@@ -351,9 +353,9 @@ impl Parser<'_> {
         })
     }
 
-    fn parse_trait_item_block(&mut self) -> Option<Vec<TraitItem>> {
+    fn parse_interface_item_block(&mut self) -> Option<Vec<InterfaceItem>> {
         if !self.eat(TokenKind::Newline) || !self.eat(TokenKind::Indent) {
-            self.error(self.current().span, "expected indented trait body");
+            self.error(self.current().span, "expected indented interface body");
             return None;
         }
         let mut items = Vec::new();
@@ -362,7 +364,7 @@ impl Parser<'_> {
             if matches!(self.current_kind(), TokenKind::Dedent | TokenKind::Eof) {
                 break;
             }
-            if let Some(item) = self.parse_trait_member() {
+            if let Some(item) = self.parse_interface_member() {
                 items.push(item);
             } else if self.handler.has_errors() {
                 self.synchronize();
@@ -375,10 +377,10 @@ impl Parser<'_> {
         Some(items)
     }
 
-    fn parse_trait_member(&mut self) -> Option<TraitItem> {
+    fn parse_interface_member(&mut self) -> Option<InterfaceItem> {
         let start = self.current().span;
         if !self.eat(TokenKind::KwDef) {
-            self.error(start, "expected 'def' in trait body");
+            self.error(start, "expected 'def' in interface body");
             return None;
         }
         let name = self.parse_ident_name()?;
@@ -401,7 +403,7 @@ impl Parser<'_> {
         } else {
             None
         };
-        Some(TraitItem::Function {
+        Some(InterfaceItem::Function {
             name,
             generics,
             params,
@@ -416,7 +418,7 @@ impl Parser<'_> {
         let generics = self.parse_generics()?;
         self.skip_layout();
         let path = self.parse_path()?;
-        let (trait_ref, self_ty) = if self.eat(TokenKind::KwFor) {
+        let (interface_ref, self_ty) = if self.eat(TokenKind::KwFor) {
             self.skip_layout();
             (Some(path), self.parse_ty()?)
         } else {
@@ -430,7 +432,7 @@ impl Parser<'_> {
         let items = self.parse_impl_item_block()?;
         Some(ItemKind::Impl {
             generics,
-            trait_ref,
+            interface_ref,
             self_ty,
             items,
             attrs,

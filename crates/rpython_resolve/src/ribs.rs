@@ -44,7 +44,7 @@ impl RibStack {
             }
             if matches!(
                 scope.kind,
-                ScopeKind::Function | ScopeKind::Impl | ScopeKind::Trait | ScopeKind::Class
+                ScopeKind::Function | ScopeKind::Impl | ScopeKind::Interface | ScopeKind::Class
             ) {
                 break;
             }

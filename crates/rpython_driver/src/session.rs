@@ -3,21 +3,22 @@ use std::path::PathBuf;
 use rpython_errors::Handler;
 use rpython_span::{FileId, SourceMap};
 
+/// Options for a single compile or run invocation.
 #[derive(Clone, Debug)]
 pub struct CompileOptions {
-    pub emit: EmitStage,
+    pub emit: CompilationStage,
     pub output: Option<PathBuf>,
     pub opt_level: OptLevel,
-    pub run_interp: bool,
+    pub run_interpreter: bool,
 }
 
 impl Default for CompileOptions {
     fn default() -> Self {
         Self {
-            emit: EmitStage::default(),
+            emit: CompilationStage::default(),
             output: None,
             opt_level: OptLevel::O0,
-            run_interp: false,
+            run_interpreter: false,
         }
     }
 }
@@ -31,16 +32,20 @@ pub enum OptLevel {
     O3,
 }
 
+/// Compiler stage at which to stop and print output (if any).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum EmitStage {
-    Tokens,
-    Ast,
-    Hir,
-    Mir,
-    Llvm,
+pub enum CompilationStage {
+    LexerTokens,
+    AbstractSyntaxTree,
+    HighLevelIntermediateRepresentation,
+    MidLevelIntermediateRepresentation,
+    LlvmIntermediateRepresentation,
     #[default]
-    Executable,
+    NativeExecutable,
 }
+
+/// Deprecated alias — prefer [`CompilationStage`].
+pub type EmitStage = CompilationStage;
 
 #[derive(Debug)]
 pub struct CompilerSession {

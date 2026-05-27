@@ -33,7 +33,9 @@ pub enum TokenKind {
     KwEnum,
     KwStruct,
     KwImpl,
-    KwTrait,
+    KwInterface,
+    #[doc(hidden)]
+    KwTrait, // deprecated alias; lexer maps "trait" here for compatibility
     KwIf,
     KwElif,
     KwElse,
@@ -113,6 +115,7 @@ impl TokenKind {
             Self::KwEnum => "KwEnum",
             Self::KwStruct => "KwStruct",
             Self::KwImpl => "KwImpl",
+            Self::KwInterface => "KwInterface",
             Self::KwTrait => "KwTrait",
             Self::KwIf => "KwIf",
             Self::KwElif => "KwElif",

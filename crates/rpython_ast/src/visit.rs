@@ -1,7 +1,7 @@
 use crate::{
     Arena, ElifArm, Expr, ExprId, ExprKind, ExternItem, FieldDef, FieldExpr, GenericParam, ImplItem,
     Item, ItemId, ItemKind, Kwarg, MatchArm, Param, Pat, PatId, PatKind, PatField,
-    Stmt, StmtId, StmtKind, TraitItem, Ty, TyId, TyKind, Variant, VariantFields,
+    InterfaceItem, Stmt, StmtId, StmtKind, Ty, TyId, TyKind, Variant, VariantFields,
 };
 use crate::{Module, Path, PathSegment};
 
@@ -49,9 +49,9 @@ pub fn walk_item<V: Visitor + ?Sized>(v: &mut V, id: ItemId, arena: &Arena) {
                 walk_impl_item(v, item, arena);
             }
         }
-        ItemKind::Trait { items, .. } => {
+        ItemKind::Interface { items, .. } => {
             for item in items {
-                walk_trait_item(v, item, arena);
+                walk_interface_item(v, item, arena);
             }
         }
         ItemKind::ExternBlock { items, .. } => {
@@ -77,16 +77,16 @@ fn walk_impl_item<V: Visitor + ?Sized>(v: &mut V, item: &ImplItem, arena: &Arena
     }
 }
 
-fn walk_trait_item<V: Visitor + ?Sized>(v: &mut V, item: &TraitItem, arena: &Arena) {
+fn walk_interface_item<V: Visitor + ?Sized>(v: &mut V, item: &InterfaceItem, arena: &Arena) {
     match item {
-        TraitItem::Function { default_body, .. } => {
+        InterfaceItem::Function { default_body, .. } => {
             if let Some(body) = default_body {
                 for &stmt in body {
                     walk_stmt(v, stmt, arena);
                 }
             }
         }
-        TraitItem::Type { ty, .. } => {
+        InterfaceItem::Type { ty, .. } => {
             if let Some(ty) = ty {
                 walk_ty(v, *ty, arena);
             }

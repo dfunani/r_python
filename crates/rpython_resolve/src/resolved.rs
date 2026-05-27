@@ -44,7 +44,7 @@ fn item_name(kind: &ItemKind) -> Option<SmolStr> {
         ItemKind::Function { name, .. }
         | ItemKind::Struct { name, .. }
         | ItemKind::Enum { name, .. }
-        | ItemKind::Trait { name, .. }
+        | ItemKind::Interface { name, .. }
         | ItemKind::Class { name, .. }
         | ItemKind::Const { name, .. } => Some(name.clone()),
         ItemKind::Module { name, .. } => Some(name.clone()),

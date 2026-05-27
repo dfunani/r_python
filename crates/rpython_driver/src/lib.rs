@@ -2,7 +2,9 @@ mod link;
 mod pipeline;
 mod session;
 
-pub use session::{CompileOptions, CompilerSession, EmitStage, OptLevel};
+pub use session::{
+    CompilationStage, CompileOptions, CompilerSession, EmitStage, OptLevel,
+};
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,41 +16,45 @@ use rpython_errors::{Handler, HumanEmitter};
 use rpython_span::SourceMap;
 use rpython_syntax::{tokenize, SpannedToken, TokenKind};
 
-use pipeline::{emit_ast, emit_hir, emit_mir, run_pipeline};
+use pipeline::{
+    emit_abstract_syntax_tree, emit_high_level_intermediate_representation,
+    emit_mid_level_intermediate_representation, run_pipeline,
+};
 
 /// Compile a source file through the full pipeline.
 pub fn compile(session: &mut CompilerSession) -> Result<()> {
     match session.options.emit {
-        EmitStage::Tokens => {
+        CompilationStage::LexerTokens => {
             let unit = run_pipeline(session)?;
             if let Some(tokens) = unit.tokens {
                 print!("{tokens}");
             }
             Ok(())
         }
-        EmitStage::Ast => {
+        CompilationStage::AbstractSyntaxTree => {
             let unit = run_pipeline(session)?;
-            println!("{}", emit_ast(&unit));
+            println!("{}", emit_abstract_syntax_tree(&unit));
             Ok(())
         }
-        EmitStage::Mir => {
+        CompilationStage::MidLevelIntermediateRepresentation => {
             let unit = run_pipeline(session)?;
-            println!("{}", emit_mir(&unit));
+            println!("{}", emit_mid_level_intermediate_representation(&unit));
             Ok(())
         }
-        EmitStage::Hir => {
+        CompilationStage::HighLevelIntermediateRepresentation => {
             let unit = run_pipeline(session)?;
-            println!("{}", emit_hir(&unit));
+            println!("{}", emit_high_level_intermediate_representation(&unit));
             Ok(())
         }
-        EmitStage::Llvm => {
+        CompilationStage::LlvmIntermediateRepresentation => {
             anyhow::bail!(
-                "emit llvm not implemented; native builds use the C backend (use -o)"
+                "emit llvm-intermediate-representation is not implemented; \
+                 native builds use the C backend (use build -o)"
             );
         }
-        EmitStage::Executable => {
+        CompilationStage::NativeExecutable => {
             let unit = run_pipeline(session)?;
-            if session.options.run_interp {
+            if session.options.run_interpreter {
                 return Ok(());
             }
             let output = session
@@ -56,13 +62,16 @@ pub fn compile(session: &mut CompilerSession) -> Result<()> {
                 .output
                 .clone()
                 .unwrap_or_else(|| default_output_path(&session.input_path));
-            let mir = unit.mir.as_ref().context("MIR not produced")?;
+            let mid_level = unit
+                .mid_level_intermediate
+                .as_ref()
+                .context("mid-level IR not produced")?;
             let resolution = unit
                 .resolution
                 .as_ref()
                 .context("resolution not produced")?;
             let typed = unit.typed.as_ref().context("typecheck not produced")?;
-            let c_out = compile_crate_to_c(mir, typed, resolution);
+            let c_out = compile_crate_to_c(mid_level, typed, resolution);
             link::link_executable(&c_out, &output, session.options.opt_level)?;
             Ok(())
         }
@@ -90,10 +99,10 @@ pub fn compile_to_executable(
     );
 
     let unit = run_pipeline(&mut session)?;
-    let mir = unit
-        .mir
+    let mid_level = unit
+        .mid_level_intermediate
         .as_ref()
-        .context("MIR not produced")?;
+        .context("mid-level IR not produced")?;
 
     let resolution = unit
         .resolution
@@ -101,12 +110,12 @@ pub fn compile_to_executable(
         .context("resolution not produced")?;
     let typed = unit.typed.as_ref().context("typecheck not produced")?;
 
-    let c_out = compile_crate_to_c(mir, typed, resolution);
+    let c_out = compile_crate_to_c(mid_level, typed, resolution);
     link::link_executable(&c_out, output, options.opt_level)?;
     Ok(output.to_path_buf())
 }
 
-/// Run MIR interpreter on a source file (no codegen).
+/// Run the mid-level IR interpreter on a source file (no codegen).
 pub fn run_interpreted(path: &Path) -> Result<()> {
     let contents =
         fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
@@ -117,8 +126,8 @@ pub fn run_interpreted(path: &Path) -> Result<()> {
         file_id,
         Handler::new(),
         CompileOptions {
-            run_interp: true,
-            emit: EmitStage::Mir,
+            run_interpreter: true,
+            emit: CompilationStage::MidLevelIntermediateRepresentation,
             ..Default::default()
         },
         path.to_path_buf(),

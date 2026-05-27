@@ -20,7 +20,7 @@ pub use expr::{
 };
 pub use item::{
     Abi, Attribute, ExternItem, FieldDef, GenericParam, ImplItem, Item, ItemKind,
-    Mutability as ItemMutability, Param, TraitItem, Variant, VariantFields,
+    InterfaceItem, Mutability as ItemMutability, Param, Variant, VariantFields,
 };
 pub use literal::Literal;
 pub use pat::{Mutability as PatMutability, Pat, PatField, PatKind};

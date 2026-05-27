@@ -113,6 +113,7 @@ impl<'a> Parser<'a> {
                 | TokenKind::KwStruct
                 | TokenKind::KwEnum
                 | TokenKind::KwImpl
+                | TokenKind::KwInterface
                 | TokenKind::KwTrait
                 | TokenKind::KwImport
                 | TokenKind::KwFrom

@@ -21,18 +21,12 @@ export PATH="$PWD/target/release:$PATH"
 
 ## Try it
 
+rPython is **compiled** (unlike CPython). Use `run` while developing, `build` for release binaries.
+
 ```bash
-# Interpret (fastest — no linker)
-rpythonc --run examples/hello.rpy
-
-# Native executable
-rpythonc -o ./hello examples/hello.rpy
-./hello
-
-# Inspect the compiler
-rpythonc --emit tokens examples/hello.rpy
-rpythonc --emit ast examples/hello.rpy
-rpythonc --emit mir examples/hello.rpy
+rpythonc run examples/hello.rpy
+rpythonc build -o ./hello examples/hello.rpy && ./hello
+rpythonc --help
 ```
 
 ## Documentation
@@ -42,7 +36,8 @@ rpythonc --emit mir examples/hello.rpy
 - [Language reference (implemented subset)](docs/LANGUAGE.md)
 - [**P0–P12 implementation status**](docs/IMPLEMENTATION_STATUS.md)
 - [Full implementation spec](docs/IMPLEMENTATION.md)
-- [Official website](https://github.com/dfunani/r_python_web) (docs & playground)
+- [**Official website / docs**](https://github.com/dfunani/r_python_web)
+- [v2 roadmap](docs/V2_ROADMAP.md) · [Naming conventions](docs/NAMING.md)
 
 ## Naming note
 

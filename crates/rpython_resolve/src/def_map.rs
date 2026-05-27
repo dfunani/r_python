@@ -24,11 +24,11 @@ pub enum DefKind {
         name: SmolStr,
         index: u32,
     },
-    Trait {
+    Interface {
         name: SmolStr,
     },
     Impl {
-        trait_ref: Option<DefId>,
+        interface_ref: Option<DefId>,
         self_ty_name: SmolStr,
     },
     Const {
@@ -138,7 +138,7 @@ impl DefMap {
             DefKind::Function { name, .. }
             | DefKind::Struct { name, .. }
             | DefKind::Enum { name, .. }
-            | DefKind::Trait { name }
+            | DefKind::Interface { name }
             | DefKind::Const { name, .. }
             | DefKind::TypeAlias { name }
             | DefKind::BuiltinType { name }

@@ -44,16 +44,16 @@ pub enum ItemKind {
         is_pub: bool,
         attrs: Vec<Attribute>,
     },
-    Trait {
+    Interface {
         name: SmolStr,
         generics: Vec<GenericParam>,
-        items: Vec<TraitItem>,
+        items: Vec<InterfaceItem>,
         is_pub: bool,
         attrs: Vec<Attribute>,
     },
     Impl {
         generics: Vec<GenericParam>,
-        trait_ref: Option<Path>,
+        interface_ref: Option<Path>,
         self_ty: TyId,
         items: Vec<ImplItem>,
         attrs: Vec<Attribute>,
@@ -127,9 +127,9 @@ pub enum VariantFields {
     Struct(Vec<FieldDef>),
 }
 
-/// Item inside a `trait` block.
+/// Item inside an `interface` block.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum TraitItem {
+pub enum InterfaceItem {
     Function {
         name: SmolStr,
         generics: Vec<GenericParam>,
