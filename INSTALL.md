@@ -30,14 +30,22 @@ Ensure `~/.local/bin` is on your `PATH`.
 
 ### Manual download
 
-1. Open [Releases](https://github.com/dfunani/r_python/releases).
-2. Download `rpythonc-<target>.tar.gz` for your machine.
-3. Extract and move `rpythonc` into a directory on your `PATH`:
+Replace `v1.0.0` with the [latest release](https://github.com/dfunani/r_python/releases/latest) tag if newer.
+
+**Stable alias** (recommended — same as `/releases/latest/download/...`):
 
 ```bash
+curl -fL -O https://github.com/dfunani/r_python/releases/latest/download/rpythonc-aarch64-apple-darwin.tar.gz
 tar -xzf rpythonc-aarch64-apple-darwin.tar.gz
-chmod +x rpythonc-aarch64-apple-darwin/rpythonc
-mv rpythonc-aarch64-apple-darwin/rpythonc ~/.local/bin/rpythonc
+install -m 755 rpythonc ~/.local/bin/rpythonc
+```
+
+**Versioned filename** (from the release assets list):
+
+```bash
+curl -fL -O https://github.com/dfunani/r_python/releases/download/v1.0.0/rpythonc-1.0.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf rpythonc-1.0.0-x86_64-unknown-linux-gnu.tar.gz
+install -m 755 rpythonc ~/.local/bin/rpythonc
 ```
 
 Verify:

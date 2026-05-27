@@ -2,8 +2,7 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
@@ -20,45 +19,75 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: macos-13
-            target: x86_64-apple-darwin
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+            archive: tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
-      - name: Build release
-        run: cargo build -p rpython_cli --release
-      - name: Package tarball
-        run: chmod +x scripts/package-release.sh && ./scripts/package-release.sh "${{ matrix.target }}"
+
+      - name: Build release binary
+        run: cargo build -p rpython_cli --release --target ${{ matrix.target }}
+
+      - name: Package (Unix)
+        if: matrix.archive == 'tar.gz'
+        env:
+          REF_NAME: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
+        run: |
+          VERSION="${REF_NAME#v}"
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/rpythonc" dist/
+          cp LICENSE README.md INSTALL.md dist/
+          tar -czvf "rpythonc-${VERSION}-${{ matrix.target }}.tar.gz" -C dist .
+          shasum -a 256 "rpythonc-${VERSION}-${{ matrix.target }}.tar.gz" > "rpythonc-${VERSION}-${{ matrix.target }}.tar.gz.sha256"
+
       - uses: actions/upload-artifact@v4
         with:
           name: rpythonc-${{ matrix.target }}
           path: |
-            dist/rpythonc-${{ matrix.target }}.tar.gz
-            dist/rpythonc-${{ matrix.target }}.tar.gz.sha256
+            rpythonc-*-${{ matrix.target }}.tar.gz
+            rpythonc-*-${{ matrix.target }}.tar.gz.sha256
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: >-
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
-      || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: dist
+          path: assets
           merge-multiple: true
-      - name: Flatten artifacts
+
+      # Stable filenames for /releases/latest/download/... (install.sh, website)
+      - name: Add latest-download aliases
         run: |
-          find dist -type f \( -name '*.tar.gz' -o -name '*.sha256' \) -exec cp {} dist/ \;
-          ls -la dist/
+          shopt -s globstar nullglob
+          for f in assets/**/rpythonc-*; do
+            base=$(basename "$f")
+            alias=$(echo "$base" | sed -E 's/^rpythonc-[0-9]+\.[0-9]+\.[0-9]+-/rpythonc-/')
+            if [ "$base" != "$alias" ]; then
+              cp "$f" "assets/$alias"
+            fi
+          done
+          find assets -type f | sort
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-          files: dist/*.tar.gz dist/*.sha256
+          name: rPython v${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}
+          files: assets/**/*
           generate_release_notes: true

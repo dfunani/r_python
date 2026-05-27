@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_ast"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_ids",
  "rpython_span",
@@ -325,7 +325,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_borrowck"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_ids",
  "rpython_mir",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_cli"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -347,7 +347,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_codegen_llvm"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_ids",
  "rpython_mir",
@@ -360,7 +360,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_driver"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "rpython_ast",
@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_errors"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_span",
  "serde",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_hir"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "rpython_ids",
@@ -401,7 +401,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_hir_build"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_ast",
  "rpython_hir",
@@ -415,14 +415,14 @@ dependencies = [
 
 [[package]]
 name = "rpython_ids"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "rpython_mir"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "rpython_ids",
@@ -434,7 +434,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_mir_build"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "rpython_ast",
@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_parse"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_ast",
  "rpython_errors",
@@ -461,7 +461,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_resolve"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "rpython_ast",
@@ -474,11 +474,11 @@ dependencies = [
 
 [[package]]
 name = "rpython_runtime"
-version = "2.0.0"
+version = "1.0.0"
 
 [[package]]
 name = "rpython_span"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "serde",
@@ -486,7 +486,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_syntax"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "rpython_errors",
  "rpython_span",
@@ -496,7 +496,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_test_runner"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "rpython_ast",
@@ -514,7 +514,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_typeck"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "rpython_ast",
@@ -529,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "rpython_types"
-version = "2.0.0"
+version = "1.0.0"
 dependencies = [
  "indexmap",
  "rpython_ids",

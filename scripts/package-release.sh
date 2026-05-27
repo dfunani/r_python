@@ -1,25 +1,32 @@
 #!/usr/bin/env bash
-# Package rpythonc for CI release (run from repo root after cargo build --release).
+# Package rpythonc for local maintainer builds (matches CI release layout).
 set -euo pipefail
 
-TARGET="${1:?usage: package-release.sh <target-triple>}"
+TARGET="${1:?usage: package-release.sh <target-triple> [version]}"
+VERSION="${2:-$(tr -d 'v' < VERSION 2>/dev/null || echo 0.0.0)}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BIN="target/release/rpythonc"
-[[ -f "$BIN" ]] || { echo "missing $BIN — run: cargo build -p rpython_cli --release" >&2; exit 1; }
+BIN="target/${TARGET}/release/rpythonc"
+if [[ ! -f "$BIN" ]]; then
+  BIN="target/release/rpythonc"
+fi
+[[ -f "$BIN" ]] || {
+  echo "missing binary — run: cargo build -p rpython_cli --release --target ${TARGET}" >&2
+  exit 1
+}
 
-STAGE="dist/rpythonc-${TARGET}"
-rm -rf "$STAGE" "dist/rpythonc-${TARGET}.tar.gz"
-mkdir -p "$STAGE"
-cp "$BIN" "$STAGE/rpythonc"
-cp LICENSE README.md "$STAGE/"
-chmod +x "$STAGE/rpythonc"
+mkdir -p dist
+cp "$BIN" dist/rpythonc
+cp LICENSE README.md INSTALL.md dist/
+chmod +x dist/rpythonc
 
-tar -czf "dist/rpythonc-${TARGET}.tar.gz" -C dist "rpythonc-${TARGET}"
-(
-  cd dist
-  shasum -a 256 "rpythonc-${TARGET}.tar.gz" > "rpythonc-${TARGET}.tar.gz.sha256"
-)
+ARCHIVE="rpythonc-${VERSION}-${TARGET}.tar.gz"
+tar -czf "$ARCHIVE" -C dist .
+shasum -a 256 "$ARCHIVE" > "${ARCHIVE}.sha256"
 
-echo "Created dist/rpythonc-${TARGET}.tar.gz"
+# Unversioned alias (same as CI latest-download aliases)
+cp "$ARCHIVE" "rpythonc-${TARGET}.tar.gz"
+cp "${ARCHIVE}.sha256" "rpythonc-${TARGET}.tar.gz.sha256"
+
+echo "Created ${ARCHIVE} and rpythonc-${TARGET}.tar.gz"

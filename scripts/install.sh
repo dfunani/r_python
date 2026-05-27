@@ -51,17 +51,23 @@ main() {
     fi
   fi
 
-  asset="rpythonc-${target}.tar.gz"
-  url="https://github.com/${REPO}/releases/download/v${VERSION}/${asset}"
+  # Prefer stable alias (CI copies rpythonc-1.0.0-TARGET → rpythonc-TARGET)
+  asset_alias="rpythonc-${target}.tar.gz"
+  asset_versioned="rpythonc-${VERSION}-${target}.tar.gz"
+  base_url="https://github.com/${REPO}/releases/download/v${VERSION}"
 
   echo "Installing rpythonc v${VERSION} for ${target} -> ${BIN_DIR}"
   mkdir -p "$BIN_DIR"
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
 
-  curl -fsSL "$url" -o "${tmp}/${asset}"
-  tar -xzf "${tmp}/${asset}" -C "$tmp"
-  install -m 755 "${tmp}/rpythonc-${target}/rpythonc" "${BIN_DIR}/rpythonc"
+  if curl -fsSL "${base_url}/${asset_alias}" -o "${tmp}/pkg.tar.gz" 2>/dev/null; then
+    :
+  else
+    curl -fsSL "${base_url}/${asset_versioned}" -o "${tmp}/pkg.tar.gz"
+  fi
+  tar -xzf "${tmp}/pkg.tar.gz" -C "$tmp"
+  install -m 755 "${tmp}/rpythonc" "${BIN_DIR}/rpythonc"
 
   if [[ ":$PATH:" != *":${BIN_DIR}:"* ]]; then
     echo ""
