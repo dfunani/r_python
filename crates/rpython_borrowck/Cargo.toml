@@ -1,0 +1,10 @@
+[package]
+name = "rpython_borrowck"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rpython_ids = { workspace = true }
+rpython_mir = { workspace = true }
+rustc-hash = { workspace = true }

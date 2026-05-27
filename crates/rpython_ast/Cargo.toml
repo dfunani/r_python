@@ -1,0 +1,11 @@
+[package]
+name = "rpython_ast"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rpython_ids = { workspace = true, features = ["serde"] }
+rpython_span = { workspace = true, features = ["serde"] }
+serde = { workspace = true }
+smol_str = { workspace = true, features = ["serde"] }

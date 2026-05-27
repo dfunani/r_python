@@ -1,0 +1,15 @@
+[package]
+name = "rpython_hir_build"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rpython_ast = { workspace = true }
+rpython_hir = { workspace = true }
+rpython_ids = { workspace = true }
+rpython_resolve = { workspace = true }
+rpython_span = { workspace = true }
+rpython_typeck = { workspace = true }
+rpython_types = { workspace = true }
+smol_str = { workspace = true }

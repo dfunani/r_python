@@ -1,0 +1,14 @@
+[package]
+name = "rpython_resolve"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+indexmap = { workspace = true }
+rustc-hash = { workspace = true }
+smol_str = { workspace = true }
+rpython_ast = { workspace = true }
+rpython_errors = { workspace = true }
+rpython_ids = { workspace = true }
+rpython_span = { workspace = true }

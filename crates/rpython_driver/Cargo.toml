@@ -1,0 +1,22 @@
+[package]
+name = "rpython_driver"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+rpython_ast = { workspace = true }
+rpython_borrowck = { workspace = true }
+rpython_codegen_llvm = { workspace = true }
+rpython_errors = { workspace = true }
+rpython_mir = { workspace = true }
+rpython_hir_build = { workspace = true }
+rpython_mir_build = { workspace = true }
+rpython_parse = { workspace = true }
+rpython_resolve = { workspace = true }
+rpython_runtime = { workspace = true }
+rpython_span = { workspace = true }
+rpython_syntax = { workspace = true }
+rpython_typeck = { workspace = true }
+tempfile = "3"

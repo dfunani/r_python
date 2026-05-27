@@ -1,0 +1,18 @@
+[package]
+name = "rpython_codegen_llvm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+llvm = []
+
+[dependencies]
+rpython_ids = { workspace = true }
+rpython_mir = { workspace = true }
+rpython_resolve = { workspace = true }
+rpython_runtime = { workspace = true }
+rpython_typeck = { workspace = true }
+rpython_types = { workspace = true }
+smol_str = { workspace = true }

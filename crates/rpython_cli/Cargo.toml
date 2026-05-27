@@ -1,0 +1,17 @@
+[package]
+name = "rpython_cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rpythonc"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+rpython_driver = { path = "../rpython_driver" }
+rpython_errors = { workspace = true }
+rpython_span = { workspace = true }
+rpython_syntax = { workspace = true }

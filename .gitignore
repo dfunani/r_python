@@ -1,0 +1,5 @@
+/target/
+/lib/
+**/*.rs.bk
+.DS_Store
+.mypy_cache/

@@ -1,0 +1,9 @@
+Ident(x)
+Assign
+IntLit(Decimal(1))
+Plus
+IntLit(Decimal(2))
+Star
+IntLit(Decimal(3))
+Newline
+Eof

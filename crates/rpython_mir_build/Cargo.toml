@@ -1,0 +1,17 @@
+[package]
+name = "rpython_mir_build"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+indexmap = { workspace = true }
+rpython_ast = { workspace = true }
+rpython_hir = { workspace = true }
+rpython_hir_build = { workspace = true }
+rpython_ids = { workspace = true }
+rpython_mir = { workspace = true }
+rpython_span = { workspace = true }
+rpython_typeck = { workspace = true }
+rpython_types = { workspace = true }
+smol_str = { workspace = true }

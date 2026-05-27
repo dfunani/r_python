@@ -1,0 +1,12 @@
+[package]
+name = "rpython_span"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+indexmap = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde"]

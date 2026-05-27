@@ -1,0 +1,13 @@
+[package]
+name = "rpython_syntax"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rpython_errors = { workspace = true }
+rpython_span = { workspace = true }
+smol_str = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

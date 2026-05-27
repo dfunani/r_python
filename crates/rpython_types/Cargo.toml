@@ -1,0 +1,10 @@
+[package]
+name = "rpython_types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+indexmap = { workspace = true }
+rustc-hash = { workspace = true }
+rpython_ids = { workspace = true }

@@ -1,0 +1,15 @@
+[package]
+name = "rpython_parse"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rpython_ast = { workspace = true }
+rpython_errors = { workspace = true }
+rpython_span = { workspace = true }
+rpython_syntax = { workspace = true }
+smol_str = { workspace = true }
+
+[dev-dependencies]
+rpython_span = { workspace = true }

@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["rPython contributors"]
+repository = "https://github.com/dfunani/r_python"
+rust-version = "1.78"
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+indexmap = "2"
+logos = "0.15"
+rustc-hash = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+smol_str = "0.3"
+thiserror = "2"
+
+rpython_ast = { path = "crates/rpython_ast" }
+rpython_borrowck = { path = "crates/rpython_borrowck" }
+rpython_codegen_llvm = { path = "crates/rpython_codegen_llvm" }
+rpython_driver = { path = "crates/rpython_driver" }
+rpython_errors = { path = "crates/rpython_errors" }
+rpython_hir = { path = "crates/rpython_hir" }
+rpython_hir_build = { path = "crates/rpython_hir_build" }
+rpython_ids = { path = "crates/rpython_ids" }
+rpython_mir = { path = "crates/rpython_mir" }
+rpython_mir_build = { path = "crates/rpython_mir_build" }
+rpython_parse = { path = "crates/rpython_parse" }
+rpython_resolve = { path = "crates/rpython_resolve" }
+rpython_runtime = { path = "crates/rpython_runtime" }
+rpython_span = { path = "crates/rpython_span" }
+rpython_syntax = { path = "crates/rpython_syntax" }
+rpython_typeck = { path = "crates/rpython_typeck" }
+rpython_types = { path = "crates/rpython_types" }
+
+[package]
+name = "rpython-workspace-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+rpython_driver = { path = "crates/rpython_driver" }

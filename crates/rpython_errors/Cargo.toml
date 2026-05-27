@@ -1,0 +1,13 @@
+[package]
+name = "rpython_errors"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rpython_span = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[features]
+default = []
+json = ["serde"]
